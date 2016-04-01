@@ -117,15 +117,96 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="webBrowser.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 87</value>
+  </data>
+  <data name="webBrowser.Size" type="System.Drawing.Size, System.Drawing">
+    <value>629, 450</value>
+  </data>
   <data name="buttonClose.Text" xml:space="preserve">
     <value>关闭</value>
   </data>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="checkBoxNext.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 16</value>
   </data>
   <data name="checkBoxNext.Text" xml:space="preserve">
     <value>下次不显示</value>
+  </data>
+  <data name="workspaceLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>71, 12</value>
+  </data>
+  <data name="workspaceLabel.Text" xml:space="preserve">
+    <value>示例工作区:</value>
+  </data>
+  <data name="workspace1Button.Location" type="System.Drawing.Point, System.Drawing">
+    <value>82, 4</value>
+  </data>
+  <data name="workspace1Button.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 24</value>
+  </data>
+  <data name="workspace1Button.Text" xml:space="preserve">
+    <value>单元测试(C#)</value>
+  </data>
+  <data name="workspace1Button.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="workspace2Button.Location" type="System.Drawing.Point, System.Drawing">
+    <value>192, 3</value>
+  </data>
+  <data name="workspace2Button.Size" type="System.Drawing.Size, System.Drawing">
+    <value>109, 24</value>
+  </data>
+  <data name="workspace2Button.Text" xml:space="preserve">
+    <value>坦克大战Demo(C#)</value>
+  </data>
+  <data name="workspace2Button.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="workspace4Button.Location" type="System.Drawing.Point, System.Drawing">
+    <value>428, 3</value>
+  </data>
+  <data name="workspace4Button.Size" type="System.Drawing.Size, System.Drawing">
+    <value>117, 24</value>
+  </data>
+  <data name="workspace4Button.Text" xml:space="preserve">
+    <value>飞机大战Demo(C++)</value>
+  </data>
+  <data name="workspace4Button.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="workspace3Button.Location" type="System.Drawing.Point, System.Drawing">
+    <value>319, 3</value>
+  </data>
+  <data name="workspace3Button.Size" type="System.Drawing.Size, System.Drawing">
+    <value>92, 24</value>
+  </data>
+  <data name="workspace3Button.Text" xml:space="preserve">
+    <value>单元测试(C++)</value>
+  </data>
+  <data name="workspace3Button.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="referenceLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>7, 39</value>
+  </data>
+  <data name="referenceLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>59, 12</value>
+  </data>
+  <data name="referenceLabel.Text" xml:space="preserve">
+    <value>参考文档:</value>
+  </data>
+  <data name="referLinkTextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>70, 39</value>
+  </data>
+  <data name="noteLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>7, 67</value>
+  </data>
+  <data name="noteLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>341, 12</value>
+  </data>
+  <data name="noteLabel.Text" xml:space="preserve">
+    <value>注意: 为了提高用户体验，相关操作将会发送到服务器进行统计</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -4993,6 +5074,6 @@
 </value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>操控键说明</value>
+    <value>起始页</value>
   </data>
 </root>

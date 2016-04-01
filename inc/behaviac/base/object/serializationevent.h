@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ENGINESERVICES_SERIALIZATIONEVENT_H_
-#define _ENGINESERVICES_SERIALIZATIONEVENT_H_
+#ifndef BEHAVIAC_ENGINESERVICES_SERIALIZATIONEVENT_H
+#define BEHAVIAC_ENGINESERVICES_SERIALIZATIONEVENT_H
 
 #include "behaviac/base/object/tagobject.h"
 
@@ -22,7 +22,7 @@
 
 #define REGISTER_SERIALIZATION_EVENT(functionToCall, PropertyFlags2)                                             \
     {                                                                                                               \
-		CMemberBase* property = CSerializationEventFactory<PropertyFlags2>::Create(&objectType::functionToCall, objectType::GetClassTypeName());     \
+        CMemberBase* property = CSerializationEventFactory<PropertyFlags2>::Create(&objectType::functionToCall, objectType::GetClassTypeName());     \
         CTagObjectDescriptor::PushBackMember(ms_members, property);                                                                             \
     }
 
@@ -36,17 +36,17 @@ public:
         : CMemberBase("SerializationEvent", className),
           m_function(Function) {}
 
-	CSerializationEvent(const CSerializationEvent& copy) : CMemberBase(copy), m_function(copy.m_function)
-	{}
+    CSerializationEvent(const CSerializationEvent& copy) : CMemberBase(copy), m_function(copy.m_function)
+    {}
 
-	virtual CMemberBase* clone() const
-	{
-		CMemberBase* p = BEHAVIAC_NEW CSerializationEvent(*this);
+    virtual CMemberBase* clone() const
+    {
+        CMemberBase* p = BEHAVIAC_NEW CSerializationEvent(*this);
 
-		return p;
-	}
+        return p;
+    }
 
-    virtual void Load(CTagObject* parent, const ISerializableNode* node)
+    virtual void Load(CTagObject* parent, const behaviac::ISerializableNode* node)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(node);
@@ -57,7 +57,7 @@ public:
         }
     }
 
-    virtual void Save(const CTagObject* parent, ISerializableNode* node)
+    virtual void Save(const CTagObject* parent, behaviac::ISerializableNode* node)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(node);
@@ -68,7 +68,7 @@ public:
         }
     }
 
-    virtual void LoadState(CTagObject* parent, const ISerializableNode* node)
+    virtual void LoadState(CTagObject* parent, const behaviac::ISerializableNode* node)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(node);
@@ -79,7 +79,7 @@ public:
         }
     }
 
-    virtual void SaveState(const CTagObject* parent, ISerializableNode* node)
+    virtual void SaveState(const CTagObject* parent, behaviac::ISerializableNode* node)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(node);
@@ -90,14 +90,14 @@ public:
         }
     }
 
-    virtual void GetUiInfo(CTagTypeDescriptor::TypesMap_t* types, const CTagObject* parent, const XmlNodeRef& xmlNode)
+    virtual void GetUiInfo(CTagTypeDescriptor::TypesMap_t* types, const CTagObject* parent, const behaviac::XmlNodeRef& xmlNode)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(xmlNode);
         BEHAVIAC_UNUSED_VAR(types);
     }
 
-    virtual void GetMethodsDescription(CTagTypeDescriptor::TypesMap_t* types, const CTagObject* parent, const XmlNodeRef& xmlNode)
+    virtual void GetMethodsDescription(CTagTypeDescriptor::TypesMap_t* types, const CTagObject* parent, const behaviac::XmlNodeRef& xmlNode)
     {
         BEHAVIAC_UNUSED_VAR(parent);
         BEHAVIAC_UNUSED_VAR(xmlNode);
@@ -113,9 +113,9 @@ struct CSerializationEventFactory
     template<class ObjectType22>
     static CMemberBase* Create(void (ObjectType22::*Function)(), const char* className)
     {
-		typedef CSerializationEvent<ObjectType22, PropertyFlags22> EventType;
+        typedef CSerializationEvent<ObjectType22, PropertyFlags22> EventType;
         return BEHAVIAC_NEW EventType(Function, className);
     }
 };
 
-#endif // #ifndef _ENGINESERVICES_SERIALIZATIONEVENT_H_
+#endif // #ifndef BEHAVIAC_ENGINESERVICES_SERIALIZATIONEVENT_H

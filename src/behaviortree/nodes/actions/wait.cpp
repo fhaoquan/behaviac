@@ -12,142 +12,147 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "behaviac/base/base.h"
+#include "behaviac/behaviortree/nodes/actions/action.h"
 #include "behaviac/behaviortree/nodes/actions/wait.h"
 #include "behaviac/agent/agent.h"
+#include "behaviac/behaviortree/nodes/conditions/condition.h"
 
 namespace behaviac
 {
-	Wait::Wait() : m_ignoreTimeScale(false), m_time_var(0)
-	{
-	}
+	Wait::Wait() : m_time_var(0), m_time_m(0)
+    {
+    }
 
-	Wait::~Wait()
-	{
-		BEHAVIAC_DELETE(this->m_time_var);
-	}
-
-	Property* LoadRight(const char* value, const behaviac::string& propertyName, behaviac::string& typeName);
+    Wait::~Wait()
+    {
+    }
 
     void Wait::load(int version, const char* agentType, const properties_t& properties)
     {
-		super::load(version, agentType, properties);
+        super::load(version, agentType, properties);
 
         for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
         {
-            const property_t& p = (*it);
+			const property_t& p = (*it);
+			behaviac::string p_name(p.name);
+			behaviac::string p_value(p.value);
 
-			if (!strcmp(p.name, "IgnoreTimeScale"))
+			if (p_name == "Time")
 			{
-				this->m_ignoreTimeScale = p.value[0] != '\0' && string_icmp(p.value, "true") == 0;
-			}
-            else if (!strcmp(p.name, "Time"))
-			{
-				behaviac::string typeName;
-				behaviac::string propertyName;
-				this->m_time_var = LoadRight(p.value, propertyName, typeName);
+				if (StringUtils::IsValidString(p.value))
+				{
+					int pParenthesis = p_value.find_first_of('(');
+
+					if (pParenthesis == -1)
+					{
+						behaviac::string typeName;
+						this->m_time_var = Condition::LoadRight(p.value, typeName);
+					}
+					else
+					{
+						this->m_time_m = Action::LoadMethod(p.value);
+					}
+				}
 			}
         }
     }
 
-	float Wait::GetTime(Agent* pAgent) const
-	{
-		if (this->m_time_var)
+	double Wait::GetTime(Agent* pAgent) const
+    {
+        if (this->m_time_var)
+        {
+			return this->m_time_var->GetDoubleValue(pAgent);
+        }
+		else
 		{
-			BEHAVIAC_ASSERT(this->m_time_var);
-			TProperty<float>* pP = (TProperty<float>*)this->m_time_var;
-			return pP->GetValue(pAgent);
+			BEHAVIAC_ASSERT(this->m_time_m);
+			if (this->m_time_m)
+			{
+				this->m_time_m->Invoke(pAgent);
+				return this->m_time_m->GetReturnDoubleValue(pAgent);
+			}
 		}
 
-		return 0;
-	}
+        return 0;
+    }
 
-	BehaviorTask* Wait::createTask() const
-	{
-		WaitTask* pTask = BEHAVIAC_NEW WaitTask();
+    BehaviorTask* Wait::createTask() const
+    {
+        WaitTask* pTask = BEHAVIAC_NEW WaitTask();
 
-		return pTask;
-	}
+        return pTask;
+    }
 
-	WaitTask::WaitTask() : LeafTask(), m_start(0), m_time(0)
-	{
-	}
+    WaitTask::WaitTask() : LeafTask(), m_start(0), m_time(0)
+    {
+    }
 
-	void WaitTask::copyto(BehaviorTask* target) const
-	{
-		super::copyto(target);
+    void WaitTask::copyto(BehaviorTask* target) const
+    {
+        super::copyto(target);
 
-		BEHAVIAC_ASSERT(WaitTask::DynamicCast(target));
-		WaitTask* ttask = (WaitTask*)target;
+        BEHAVIAC_ASSERT(WaitTask::DynamicCast(target));
+        WaitTask* ttask = (WaitTask*)target;
 
-		ttask->m_start = this->m_start;
-		ttask->m_time = this->m_time;
-	}
+        ttask->m_start = this->m_start;
+        ttask->m_time = this->m_time;
+    }
 
-	void WaitTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
+    void WaitTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
 
-		if (this->m_status != BT_INVALID)
-		{
-			CSerializationID  startId("start");
-			node->setAttr(startId, this->m_start);
+        if (this->m_status != BT_INVALID)
+        {
+            CSerializationID  startId("start");
+            node->setAttr(startId, this->m_start);
 
-			CSerializationID  timeId("time");
-			node->setAttr(timeId, this->m_time);
-		}
-	}
+            CSerializationID  timeId("time");
+            node->setAttr(timeId, this->m_time);
+        }
+    }
 
-	void WaitTask::load(ISerializableNode* node)
-	{
-		super::load(node);
+    void WaitTask::load(ISerializableNode* node)
+    {
+        super::load(node);
 
-		if (this->m_status != BT_INVALID)
-		{
-			CSerializationID  startId("start");
-			behaviac::string attrStr;
-			node->getAttr(startId, attrStr);
-			StringUtils::FromString(attrStr.c_str(), this->m_start);
+        if (this->m_status != BT_INVALID)
+        {
+            CSerializationID  startId("start");
+            behaviac::string attrStr;
+            node->getAttr(startId, attrStr);
+            StringUtils::FromString(attrStr.c_str(), this->m_start);
 
-			CSerializationID  timeId("time");
-			node->getAttr(timeId, attrStr);
-			StringUtils::FromString(attrStr.c_str(), this->m_time);
-		}
-	}
+            CSerializationID  timeId("time");
+            node->getAttr(timeId, attrStr);
+            StringUtils::FromString(attrStr.c_str(), this->m_time);
+        }
+    }
 
-	WaitTask::~WaitTask()
-	{
-	}
+    WaitTask::~WaitTask()
+    {
+    }
 
-	bool WaitTask::GetIgnoreTimeScale() const
-	{
-		const Wait* pWaitNode = Wait::DynamicCast(this->GetNode());
+	double WaitTask::GetTime(Agent* pAgent) const
+    {
+        const Wait* pWaitNode = Wait::DynamicCast(this->GetNode());
 
-		return pWaitNode ? pWaitNode->m_ignoreTimeScale : false;
-	}
-
-	float WaitTask::GetTime(Agent* pAgent) const
-	{
-		const Wait* pWaitNode = Wait::DynamicCast(this->GetNode());
-
-		return pWaitNode ? pWaitNode->GetTime(pAgent) : 0;
-	}
+        return pWaitNode ? pWaitNode->GetTime(pAgent) : 0;
+    }
 
     bool WaitTask::onenter(Agent* pAgent)
     {
         BEHAVIAC_UNUSED_VAR(pAgent);
 
-		if (this->GetIgnoreTimeScale())
-		{
-			this->m_start = Workspace::GetTimeSinceStartup() * 1000.0f;
-		}
-		else
-		{
-			this->m_start = 0;
-		}
+		this->m_start = Workspace::GetInstance()->GetTimeSinceStartup() * 1000;
+        this->m_time = this->GetTime(pAgent);
 
-		this->m_time = this->GetTime(pAgent);
+        if (this->m_time <= 0)
+        {
+            return false;
+        }
 
-        return (this->m_time >= 0);
+        return true;
     }
 
     void WaitTask::onexit(Agent* pAgent, EBTStatus s)
@@ -161,23 +166,13 @@ namespace behaviac
         BEHAVIAC_UNUSED_VAR(pAgent);
         BEHAVIAC_UNUSED_VAR(childStatus);
 
-		if (this->GetIgnoreTimeScale())
+		double time = Workspace::GetInstance()->GetTimeSinceStartup();
+
+		if (time * 1000 - this->m_start >= this->m_time)
 		{
-			if (Workspace::GetTimeSinceStartup() * 1000.0f - this->m_start >= this->m_time)
-			{
-				return BT_SUCCESS;
-			}
-		}
-		else
-		{
-			this->m_start += Workspace::GetDeltaFrameTime() * 1000.0f;
-			if (this->m_start >= this->m_time)
-			{
-				return BT_SUCCESS;
-			}
+			return BT_SUCCESS;
 		}
 
         return BT_RUNNING;
     }
-
 }

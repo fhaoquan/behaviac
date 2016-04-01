@@ -29,6 +29,11 @@ namespace PluginBehaviac.Nodes
 		{
 		}
 
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/sequencestochastic/"; }
+        }
+
         public override string ExportClass
         {
             get { return "SequenceStochastic"; }
@@ -59,6 +64,10 @@ namespace PluginBehaviac.Nodes
             if (this._method == null)
             {
                 result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Warning, Resources.RandomGeneratorNotSpecified));
+            }
+            else if (this._method.IsCustomized)
+            {
+                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, Resources.CustomizedMethodError));
             }
 
             base.CheckForErrors(rootBehavior, result);

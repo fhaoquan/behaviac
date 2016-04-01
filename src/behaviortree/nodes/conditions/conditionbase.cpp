@@ -16,61 +16,53 @@
 
 namespace behaviac
 {
-	ConditionBase::ConditionBase()
-	{}
+    ConditionBase::ConditionBase()
+    {}
 
-	ConditionBase::~ConditionBase()
-	{}
+    ConditionBase::~ConditionBase()
+    {}
 
-	void ConditionBase::load(int version, const char* agentType, const properties_t& properties)
-	{
-		super::load(version, agentType, properties);
-	}
+    void ConditionBase::load(int version, const char* agentType, const properties_t& properties)
+    {
+        super::load(version, agentType, properties);
+    }
 
-	bool ConditionBase::IsValid(Agent* pAgent, BehaviorTask* pTask) const
-	{
-		if (!ConditionBase::DynamicCast(pTask->GetNode()))
-		{
-			return false;
-		}
-	
-		return super::IsValid(pAgent, pTask);
-	}
+    bool ConditionBase::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+    {
+        if (!ConditionBase::DynamicCast(pTask->GetNode()))
+        {
+            return false;
+        }
 
+        return super::IsValid(pAgent, pTask);
+    }
 
-	ConditionBaseTask::ConditionBaseTask() : LeafTask()
-	{
-	}
+    ConditionBaseTask::ConditionBaseTask() : LeafTask()
+    {
+    }
 
-	ConditionBaseTask::~ConditionBaseTask()
-	{
-	}
-
-
-	bool ConditionBaseTask::isContinueTicking() const
-	{
-		return false;
-	}
-
-	bool ConditionBaseTask::onenter(Agent* pAgent)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		return true;
-	}
-
-	void ConditionBaseTask::onexit(Agent* pAgent, EBTStatus s)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(s);
-	}
+    ConditionBaseTask::~ConditionBaseTask()
+    {
+    }
 
 
-	EBTStatus ConditionBaseTask::update(Agent* pAgent, EBTStatus childStatus)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(childStatus);
+    bool ConditionBaseTask::onenter(Agent* pAgent)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        return true;
+    }
 
-		return BT_SUCCESS;
-	}
+    void ConditionBaseTask::onexit(Agent* pAgent, EBTStatus s)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        BEHAVIAC_UNUSED_VAR(s);
+    }
 
+    EBTStatus ConditionBaseTask::update(Agent* pAgent, EBTStatus childStatus)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        BEHAVIAC_UNUSED_VAR(childStatus);
+
+        return BT_SUCCESS;
+    }
 }

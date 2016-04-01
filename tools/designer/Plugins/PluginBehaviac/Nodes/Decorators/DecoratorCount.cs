@@ -53,7 +53,7 @@ namespace PluginBehaviac.Nodes
 
         public override void CheckForErrors(BehaviorNode rootBehavior, List<ErrorCheck> result)
         {
-            Type valueType = this._count.GetValueType();
+            Type valueType = this._count.ValueType;
 
             string typeName = Plugin.GetNativeTypeName(valueType.FullName);
 
@@ -78,7 +78,7 @@ namespace PluginBehaviac.Nodes
                         ulong count = ulong.Parse(valueString);
                         if (count >= 100000000)
                         {
-                            result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Count is a huge number it could be wrong!"));
+                            result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Warning, "Count is a huge number it could be wrong!"));
                         }
                     }
                     else

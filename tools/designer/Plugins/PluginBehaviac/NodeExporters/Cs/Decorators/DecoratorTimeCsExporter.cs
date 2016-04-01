@@ -26,7 +26,36 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            DecoratorTime decoratorTime = node as DecoratorTime;
+            return (decoratorTime != null);
+        }
+
+        protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
+        {
+            base.GenerateConstructor(node, stream, indent, className);
+
+            DecoratorTime decoratorTime = node as DecoratorTime;
+            if (decoratorTime == null)
+                return;
+
+            if (decoratorTime.Time != null)
+            {
+                RightValueCsExporter.GenerateClassConstructor(decoratorTime.Time, stream, indent, "Time");
+            }
+        }
+
+        protected override void GenerateMember(Node node, StreamWriter stream, string indent)
+        {
+            base.GenerateMember(node, stream, indent);
+
+            DecoratorTime decoratorTime = node as DecoratorTime;
+            if (decoratorTime == null)
+                return;
+
+            if (decoratorTime.Time != null)
+            {
+                RightValueCsExporter.GenerateClassMember(decoratorTime.Time, stream, indent, "Time");
+            }
         }
 
         protected override void GenerateMethod(Node node, StreamWriter stream, string indent)
@@ -34,14 +63,20 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMethod(node, stream, indent);
 
             DecoratorTime decoratorTime = node as DecoratorTime;
-            Debug.Check(decoratorTime != null);
+            if (decoratorTime == null)
+                return;
 
             if (decoratorTime.Time != null)
             {
-                stream.WriteLine("{0}\t\tprotected override int GetTime(Agent pAgent)", indent);
+                stream.WriteLine("{0}\t\tprotected override double GetTime(Agent pAgent)", indent);
                 stream.WriteLine("{0}\t\t{{", indent);
 
-                string retStr = VariableCsExporter.GenerateCode(decoratorTime.Time, stream, indent + "\t\t\t", string.Empty, string.Empty, string.Empty);
+                string retStr = RightValueCppExporter.GenerateCode(decoratorTime.Time, stream, indent + "\t\t\t", string.Empty, string.Empty, "Time");
+
+                if (!decoratorTime.Time.IsPublic && (decoratorTime.Time.IsMethod || decoratorTime.Time.Var != null && decoratorTime.Time.Var.IsProperty))
+                {
+                    retStr = string.Format("Convert.ToDouble({0})", retStr);
+                }
 
                 stream.WriteLine("{0}\t\t\treturn {1};", indent, retStr);
                 stream.WriteLine("{0}\t\t}}", indent);

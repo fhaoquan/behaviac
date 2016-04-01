@@ -11,248 +11,344 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef BEHAVIAC_WORKSAPCE_H_
-#define BEHAVIAC_WORKSAPCE_H_
+#ifndef BEHAVIAC_WORKSAPCE_H
+#define BEHAVIAC_WORKSAPCE_H
 
 #include "behaviac/base/core/config.h"
 #include "behaviac/base/core/assert_t.h"
 
 #include "behaviac/base/base.h"
-#include "behaviac/base/logging/logging.h"
+#include "behaviac/base/logging/logmanager.h"
 
 namespace behaviac
 {
-	class BEHAVIAC_API Config
-	{
-	private:
-		static const bool ms_bIsDesktopPlatform;
-		static bool ms_bIsLogging;
-		static bool ms_bIsSocketing;
-		static bool ms_bProfiling;
-		static bool ms_bDebuggingEnabled;
-	public:
+    class BEHAVIAC_API Config
+    {
+    private:
+        static const bool ms_bIsDesktopPlatform;
+        static bool ms_bIsLogging;
+        static bool ms_bLoggingFlush;
+        static bool ms_bIsSocketing;
+        static bool ms_bProfiling;
+        static bool ms_bSocketIsBlocking;
+        static bool ms_bHotReload;
+        static unsigned short ms_socketPort;
+
+    public:
+        static bool IsProfiling();
+
+        /**
+        to determine if profiling facility is enabled.
+        if enabled, the profiling info(node ticking time) can be collected and sent to the connected designer
+
+        by default it is disabled, however, when conecting to the desinger,
+        the settings in the designer is sent to the cpp side, that is it can be enabled/disabled by the designer.
+        */
+        static void SetProfiling(bool bEnabled);
+        static bool IsDesktopPlatform();
+
+        /**
+        by default, logging is disabled
+        */
+        static bool IsLogging();
+        static void SetLogging(bool bLogging);
+
+        static bool IsLoggingFlush();
+        static void SetLoggingFlush(bool bFlush);
+
+        static bool IsSocketing();
+        static void SetSocketing(bool bSocketing);
+
+        static bool IsLoggingOrSocketing()
+        {
+            return IsLogging() || IsSocketing();
+        }
+
+		static bool IsSocketBlocking();
+        static void SetSocketBlocking(bool bBlocking);
+
+        static void SetSocketPort(unsigned short port);
+        static unsigned short GetSocketPort();
+
+		static bool IsHotReload();
+		static void SetHotReload(bool bHotReload);
+
+    };
+
+    struct property_t
+    {
+        const char* name;
+        const char* value;
+
+        property_t(const char* n, const char* v) : name(n), value(v)
+        {}
+    };
+
+    class BEHAVIAC_API GenerationManager
+    {
+    public:
+        virtual ~GenerationManager() {}
+
+
+        static void RegisterBehaviors();
+
+    protected:
+        virtual void RegisterBehaviorsImplement();
+
+        static void SetInstance(GenerationManager* generationManager);
+
+    private:
+        static GenerationManager* ms_generationManager;
+    };
+
+    typedef behaviac::vector<property_t> properties_t;
+    typedef behaviac::vector<property_t>::iterator propertie_iterator_t;
+    typedef behaviac::vector<property_t>::const_iterator propertie_const_iterator_t;
+
+    class BehaviorTree;
+    class BehaviorNode;
+    class BehaviorTreeTask;
+    class Agent;
+
+    class BEHAVIAC_API Workspace
+    {
+    public:
+        BEHAVIAC_DECLARE_MEMORY_OPERATORS(Workspace);
+
+        enum BEHAVIAC_API EFileFormat
+        {
+            EFF_xml = 1,								//specify to use xml only
+            EFF_bson = 2,								//specify to use bson only
+            EFF_cpp = 4,								//specify to use cpp only
+            EFF_default = EFF_xml | EFF_bson | EFF_cpp	//first try to use xml, if xml file doesn't exist, it tries the bson, then tries cpp
+        };
 
 		/**
-		to determine if debugging facility is enabled.
-		if enabled, the designer can connect to the game and can set break point, etc.
-
-		by default it is disabled, however, when conecting to the desinger,
-		the settings in the designer is sent to the cpp side, that is it can be enabled/disabled by the designer.
+		version_str is used to make sure the lib compiling defines are the same with app's
+		just use this default param and don't provode any param unless you know what you are doing
 		*/
-		static bool IsDebugging();
-		static void SetDebugging(bool bEnabled);
+		static Workspace* GetInstance(const char* version_str = BEHAVIAC_BUILD_CONFIG_STR);
 
-		static bool IsProfiling();
-
-		/**
-		to determine if profiling facility is enabled.
-		if enabled, the profiling info(node ticking time) can be collected and sent to the connected designer
-
-		by default it is disabled, however, when conecting to the desinger,
-		the settings in the designer is sent to the cpp side, that is it can be enabled/disabled by the designer.
-		*/
-		static void SetProfiling(bool bEnabled);
-		static bool IsDesktopPlatform();
-
-		/**
-		by default, logging is disabled
-		*/
-		static bool IsLogging();
-		static void SetLogging(bool bLogging);
-
-		static bool IsSocketing();
-		static void SetSocketing(bool bSocketing);
-
-		static bool IsLoggingOrSocketing()
-		{
-			return IsLogging() || IsSocketing();
-		}
-	};
-
-	struct property_t
-	{
-		const char* name;
-		const char* value;
-
-		property_t(const char* n, const char* v) : name(n), value(v)
-		{}
-	};
-
-	typedef behaviac::vector<property_t> properties_t;
-	typedef behaviac::vector<property_t>::iterator propertie_iterator_t;
-	typedef behaviac::vector<property_t>::const_iterator propertie_const_iterator_t;
-
-	class BehaviorTree;
-	class BehaviorTreeTask;
-	class Agent;
-
-	class BEHAVIAC_API Workspace
-	{
-	private:
-		static bool LoadWorkspaceSetting(const char* file, behaviac::string& workspaceFile);
-		static bool LoadWorkspaceFile(const char* file);
-
-		static char* ReadFileToBuffer(const char* file);
-		static void PopFileFromBuffer(char* pBuffer);
-
-		/**
-		a shared buffer is kept for file loading.
-		after all the files are loaded, you can call this to free those buffer.
-
-		we assume all the loading is handled in the same thread so this is not thread-safe.
-		*/
-		static void FreeFileBuffer();
-
-
-		static void ParseBreakpoint(const behaviac::vector<behaviac::string>& tokens);
-		static void ParseProperty(const behaviac::vector<behaviac::string>& tokens);
-		static void ParseBreakCPP(const behaviac::vector<behaviac::string>& tokens);
-		static void ParseProfiling(const behaviac::vector<behaviac::string>& tokens);
-		static void ParseAppLogFilter(const behaviac::vector<behaviac::string>& tokens);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        /**
+        "timeSinceStartup" and "frameSinceStartup" might be used by btexec in each frame, btexec is used to execute the BT.
 		
-	private:
-		static uint32_t					m_frame;
-		static behaviac::string		m_applogFilter;
+		"timeSinceStartup" is the time in seconds since the game starts up.
 
-		//[breakpoint] set TestBehaviorGroup\btunittest.xml Sequence[3] enter
-		//[breakpoint] set TestBehaviorGroup\btunittest.xml Sequence[3] exit
-		//[breakpoint] clear TestBehaviorGroup\btunittest.xml Sequence[3] enter
-		struct BreakpointInfo_t
-		{
-			behaviac::string			btname;
-
-			unsigned short			hit_config;
-
-			EActionResult			action_result;
-
-			BreakpointInfo_t() : hit_config(0), action_result(EAR_all)
-			{}
-		};
-
-		typedef behaviac::map<uint32_t, BreakpointInfo_t> BreakpointInfos_t;
-		static BreakpointInfos_t		m_breakpoints;
-
-		typedef behaviac::map<CStringID, int> ActionCount_t;
-		static ActionCount_t			m_actions_count;
-
-		static behaviac::Mutex			m_cs;
-	public:
-		enum BEHAVIAC_API EFileFormat
-		{
-			EFF_xml  = 1,								//specify to use xml
-			EFF_bson = 2,								//specify to use bson
-			EFF_cpp  = 4,								//specify to use cpp
-			EFF_default = EFF_xml |	EFF_bson | EFF_cpp	//use the format specified by SetWorkspaceSettings
-		};
-
-		typedef void (*BehaviorNodeLoadedHandler_t)(const char* nodeType, const properties_t& properties);
-
-		////////////////////////////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////////////////////////////
-		/**
-		set the workspace settings
-		
-		'workspaceRootPath_' specifies the file path of of the exported path of the workspace file which is configured in the workspace file(.workspace.xml), 
-		it can be either an absolute path or relative to the current path.
-		'format' specify the format to use, xml or bson, 
-		
-		the default format is xml.
-
-		@return false if 'path' is not a valid path holding valid data
+		"frameSinceStartup" is the frames since the game starts up.
 		*/
-		static bool SetWorkspaceSettings(const char* workspaceExportPath, EFileFormat format = EFF_xml, float deltaTime = 0.0167f, int deltaFrames = 1);
+		virtual void SetTimeSinceStartup(double timeSinceStartup);
+		virtual double GetTimeSinceStartup();
 
-		/**
-		timeSinceStartup, deltaTime and deltaFrames might be used by btexec
+        virtual void SetFrameSinceStartup(int frameSinceStartup);
+		virtual int GetFrameSinceStartup();
 
-		in each frame, btexec is used to execute the BT. "timeSinceStartup" is the time since the game starts up, 'deltaTime' and 'deltaFrames' are the intervals since last frame.
-		*/
-		static void SetTimeSinceStartup(float timeSinceStartup);
-		static float GetTimeSinceStartup();
-		static void SetDeltaFrameTime(float deltaTime);
-		static float GetDeltaFrameTime();
-		static void SetDeltaFrames(int deltaFrames);
-		static int GetDeltaFrames();
+        /**
+        'ExportPath' is the path in which the files are exported, which is configured in the workspace file.
 
-		static bool ExportMetas(const char* fileName);
-		static void Cleanup();
+        it can be either an absolute path or relative to the current path.
+        */
+        const char* GetFilePath() const;
+        void SetFilePath(const char* szExportPath);
 
-		static const wchar_t* GetWorkspaceAbsolutePath();
+        /**
+        'format' specify the format to use, xml or bson,
+        */
+        EFileFormat GetFileFormat();
+        void SetFileFormat(EFileFormat ff);
 
-		/**
-		get the file format specified by SetWorkspaceSettings
-		*/
-		static EFileFormat GetFileFormat();
+        bool IsExecAgents() const;
+        void SetIsExecAgents(bool bExecAgents);
 
-		/**
-		'handler' will be called for ever behavior node.
-		*/
-		static BehaviorNodeLoadedHandler_t SetLoadedHandler(BehaviorNodeLoadedHandler_t handler);
-		static BehaviorNodeLoadedHandler_t GetLoadedHandler();
+		virtual void Update();
 
-		/**
-		relativePath is relateve to the workspace exported path. relativePath should not include extension.
-		the file format(xml/bson) is specified by SetWorkspaceSettings.
+		void DebugUpdate();
 
-		@param bForce
-		force to load, otherwise it just uses the one in the cache
-		*/
-		static bool Load(const char* relativePath, bool bForce = false);
-		static void UnLoad(const char* relativePath);
-		static void UnLoadAll();
+        /**
+        this is called for every behavior node, in which uses can do some custom stuff
+        */
+        typedef void (*BehaviorNodeLoader)(const char* nodeType, const properties_t& properties);
+        void SetBehaviorNodeLoader(BehaviorNodeLoader loaderCallback);
 
-		static int UpdateActionCount(const char* actionString);
-		static int GetActionCount(const char* actionString);
+        void BehaviorNodeLoaded(const char* nodeType, const properties_t& properties);
 
-		/**
-		check if it is set as a break point
-		*/
-		static bool CheckBreakpoint(const behaviac::Agent* pAgent, const behaviac::BehaviorTask* b, const char* action, behaviac::EActionResult actionResult);
+        bool ExportMetas(const char* xmlMetaFilePath);
+        void Cleanup();
 
-		/**
-		check if 'filter' is set to break
-		*/
-		static bool CheckAppLogFilter(const char* filter);
+        void LogWorkspaceInfo();
 
-		static void LogFrames();
+        /**
+        Load the specified behavior tree
 
-		/**
-		wait for the continue request from the designer after the breakpoint
-		*/
-		static void WaitforContinue();
+        the workspace export path is provided by Workspace::GetFilePath
+        the file format(xml/bson) is provided by Workspace::GetFileFormat
+
+        generally, you need to derive Workspace and override GetFilePath and GetFileFormat,
+        then, instantiate your derived Workspace at the very beginning
+
+        @param relativePath
+        a path relateve to the workspace exported path. relativePath should not include extension.
+        @param bForce
+        force to load, otherwise it just uses the one in the cache
+        */
+        bool Load(const char* relativePath, bool bForce = false);
+        void UnLoad(const char* relativePath);
+        void UnLoadAll();
+
+        BehaviorTree* LoadBehaviorTree(const char* relativePath);
+
+        int UpdateActionCount(const char* actionString);
+        int GetActionCount(const char* actionString);
+
+        /**
+        check if it is set as a break point
+        */
+        bool CheckBreakpoint(const behaviac::Agent* pAgent, const behaviac::BehaviorNode* b, const char* action, behaviac::EActionResult actionResult);
+
+        /**
+        check if 'filter' is set to break
+        */
+        bool CheckAppLogFilter(const char* filter);
+
+        /**
+        wait for the continue request from the designer after the breakpoint
+        */
+        void WaitforContinue();
+
+        /**
+        hot reload the modified behaviors.
+        */
+        void RecordBTAgentMapping(const char* relativePath, Agent* agent);
+
+        /**
+        uses the behavior tree in the cache, if not loaded yet, it loads the behavior tree first
+        */
+        BehaviorTreeTask* CreateBehaviorTreeTask(const char* relativePath);
+        void DestroyBehaviorTreeTask(BehaviorTreeTask* behaviorTreeTask, Agent* agent);
+
+        void RegisterBasicNodes();
+        void UnRegisterBasicNodes();
+
+        typedef behaviac::map<behaviac::string, BehaviorTree*> BehaviorTrees_t;
+        typedef bool(*BehaviorTreeCreator_t)(BehaviorTree*);
+        typedef behaviac::map<behaviac::string, Workspace::BehaviorTreeCreator_t> BehaviorTreeCreators_t;
+
+        const BehaviorTrees_t& GetBehaviorTrees();
+
+        bool RegisterBehaviorTreeCreator(const char* relativePath, BehaviorTreeCreator_t creator);
+        void UnRegisterBehaviorTreeCreators();
+
+        bool PopFileFromBuffer(const char* file, const char* str, char* pBuffer);
+        void LogCurrentStates();
+
+        void HandleFileFormat(const behaviac::string& fullPath, behaviac::string& ext, Workspace::EFileFormat& f);
+        char* ReadFileToBuffer(const char* file, const char* ext);
+
+    protected:
+        Workspace();
+        virtual ~Workspace();
+
+    private:
+        bool LoadWorkspaceSetting(const char* file, behaviac::string& workspaceFile);
+        bool LoadWorkspaceFile(const char* file);
+
+        char* ReadFileToBuffer(const char* file);
+
+        void PopFileFromBuffer(char* pBuffer);
+
+        /**
+        a shared buffer is kept for file loading.
+        after all the files are loaded, you can call this to free those buffer.
+
+        we assume all the loading is handled in the same thread so this is not thread-safe.
+        */
+        void FreeFileBuffer();
+
+        void ParseBreakpoint(const behaviac::vector<behaviac::string>& tokens);
+        void ParseProperty(const behaviac::vector<behaviac::string>& tokens);
+        void ParseProfiling(const behaviac::vector<behaviac::string>& tokens);
+        void ParseAppLogFilter(const behaviac::vector<behaviac::string>& tokens);
+
+		void LogFrames();
 
 		/**
 		handle the requests from the designer
 
 		@return true if the continue message is handled from the designer
 		*/
-		static bool HandleRequests();
+		bool HandleRequests();
+		void HotReload();
 
-		/**
-		hot reload the modified behaviors.
-		*/
-		static void SetAutoHotReload(bool enable);
-		static bool GetAutoHotReload();
-		static void HotReload();
-		static void RecordBTAgentMapping(const char* relativePath, Agent* agent);
+        /**
+        @return false if 'path' is not a valid path holding valid data
+        */
+        bool TryInit();
 
-		/**
-		uses the behavior tree in the cache, if not loaded yet, it loads the behavior tree first
-		*/
-		static BehaviorTreeTask* CreateBehaviorTreeTask(const char* relativePath);
-		static void DestroyBehaviorTreeTask(BehaviorTreeTask* behaviorTreeTask, Agent* agent);
+        //[breakpoint] set TestBehaviorGroup\btunittest.xml Sequence[3] enter
+        //[breakpoint] set TestBehaviorGroup\btunittest.xml Sequence[3] exit
+        //[breakpoint] clear TestBehaviorGroup\btunittest.xml Sequence[3] enter
+        struct BreakpointInfo_t
+        {
+            behaviac::string	btname;
 
-        static void RegisterBasicNodes();
-        static void UnRegisterBasicNodes();
+            unsigned short		hit_config;
 
-		typedef behaviac::map<behaviac::string, BehaviorTree*> BehaviorTrees_t;
-		static const BehaviorTrees_t& GetBehaviorTrees();
+            EActionResult		action_result;
 
-		typedef bool (*BehaviorTreeCreator_t)(BehaviorTree*);
-		static bool RegisterBehaviorTreeCreator(const char* relativePath, BehaviorTreeCreator_t creator);
-		static void UnRegisterBehaviorTreeCreators();
-	};
+            BreakpointInfo_t() : hit_config(0), action_result(EAR_all)
+            {}
+        };
 
+        typedef behaviac::map<uint32_t, BreakpointInfo_t> BreakpointInfos_t;
+        BreakpointInfos_t		m_breakpoints;
+
+        typedef behaviac::map<CStringID, int> ActionCount_t;
+        ActionCount_t			m_actions_count;
+
+        behaviac::Mutex			m_cs;
+
+        static const int kMaxPath = 260 * 2;
+        static const int kFileBufferDepth = 20;
+
+        char					m_szWorkspaceExportPath[kMaxPath];
+
+        static Workspace*		ms_instance;
+
+        bool					m_bInited;
+        bool					m_bExecAgents;
+
+        Workspace::EFileFormat	m_fileFormat;
+
+        behaviac::string		m_applogFilter;
+
+        Workspace::BehaviorTrees_t m_behaviortrees;
+
+#if BEHAVIAC_ENABLE_HOTRELOAD
+        typedef behaviac::vector<BehaviorTreeTask*> BehaviorTreeTasks_t;
+
+        struct BTItem_t
+        {
+            BehaviorTreeTasks_t			bts;
+            behaviac::vector<Agent*>	agents;
+        };
+        typedef behaviac::map<behaviac::string, BTItem_t> AllBehaviorTreeTasks_t;
+        AllBehaviorTreeTasks_t* m_allBehaviorTreeTasks;
+#endif//BEHAVIAC_ENABLE_HOTRELOAD
+
+        BehaviorNodeLoader		m_pBehaviorNodeLoader;
+        BehaviorTreeCreators_t* m_behaviortreeCreators;
+
+        char* m_fileBuffer;
+        uint32_t m_fileBufferLength;
+        int m_fileBufferTop;
+        uint32_t m_fileBufferOffset[kFileBufferDepth];
+
+		int m_frame;
+
+protected:
+		double m_timeSinceStartup;
+		int m_frameSinceStartup;
+    };
 }//namespace behaviac
 
 #if BEHAVIAC_COMPILER_MSVC
@@ -266,20 +362,20 @@ namespace behaviac
 #endif
 
 #define _MY_LOG_BREAK_(filter, appLog) \
-	{ \
-	behaviac::LogManager::GetInstance()->Log(behaviac::ELM_breaked, filter, appLog); \
-	behaviac::LogManager::GetInstance()->Flush(0); \
-	behaviac::Socket::Flush(); \
-	const char* filterStr = (filter == 0 || *filter == '\0') ? "empty" : filter; \
-	const char* msg = FormatString("BehaviorTreeTask AppLog Breaked at: %s(%d)\n\n'%s:%s'\n\nOk to break, Cancel to continue.", __FILE__, __LINE__, filterStr, appLog); \
-	if (IDOK == MessageBoxA(0, msg, "BehaviorTreeTask AppLog", MB_OKCANCEL | MB_ICONHAND | MB_SETFOREGROUND | MB_SYSTEMMODAL)) \
-	{ \
-		DebugBreak_(); \
-	} \
-	behaviac::LogManager::GetInstance()->Log(behaviac::ELM_continue, filter, appLog); \
-	behaviac::LogManager::GetInstance()->Flush(0); \
-	behaviac::Socket::Flush(); \
-	}
+    { \
+        behaviac::LogManager::GetInstance()->Log(behaviac::ELM_breaked, filter, appLog); \
+        behaviac::LogManager::GetInstance()->Flush(0); \
+        behaviac::Socket::Flush(); \
+        const char* filterStr = (filter == 0 || *filter == '\0') ? "empty" : filter; \
+        const char* msg = FormatString("BehaviorTreeTask AppLog Breaked at: %s(%d)\n\n'%s:%s'\n\nOk to break, Cancel to continue.", __FILE__, __LINE__, filterStr, appLog); \
+        if (IDOK == MessageBoxA(0, msg, "BehaviorTreeTask AppLog", MB_OKCANCEL | MB_ICONHAND | MB_SETFOREGROUND | MB_SYSTEMMODAL)) \
+        { \
+            DebugBreak_(); \
+        } \
+        behaviac::LogManager::GetInstance()->Log(behaviac::ELM_continue, filter, appLog); \
+        behaviac::LogManager::GetInstance()->Flush(0); \
+        behaviac::Socket::Flush(); \
+    }
 
 /**
 an applog can be as a mark indiating a certain event happened, which can be seached and located in the designer when debugged
@@ -287,23 +383,20 @@ an applog can be as a mark indiating a certain event happened, which can be seac
 there are the following predefined filters:RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, PURPLE
 */
 #define BEHAVIAC_APPLOG(filter, msg, contextId) \
-	behaviac::LogManager::GetInstance()->Log(behaviac::ELM_tick, filter, msg); \
-	if (behaviac::Config::IsDebugging()) \
-	{ \
-		if (behaviac::Workspace::CheckAppLogFilter(filter)) \
-		{ \
-		behaviac::LogManager::GetInstance()->Flush(0); \
-		behaviac::Socket::Flush(); \
-		behaviac::BreakpointPromptHandler_fn fn = behaviac::GetBreakpointPromptHandler(); \
-		if (fn == 0) \
-		{ \
-			_MY_LOG_BREAK_(filter, msg); \
-		} \
-		else \
-		{ \
-			fn(msg); \
-		} \
-	} \
-}
+    behaviac::LogManager::GetInstance()->Log(behaviac::ELM_tick, filter, msg); \
+    if (behaviac::Workspace::CheckAppLogFilter(filter)) \
+    { \
+        behaviac::LogManager::GetInstance()->Flush(0); \
+        behaviac::Socket::Flush(); \
+        behaviac::BreakpointPromptHandler_fn fn = behaviac::GetBreakpointPromptHandler(); \
+        if (fn == 0) \
+        { \
+            _MY_LOG_BREAK_(filter, msg); \
+        } \
+        else \
+        { \
+            fn(msg); \
+        } \
+    }
 
-#endif // BEHAVIAC_WORKSAPCE_H_
+#endif // BEHAVIAC_WORKSAPCE_H

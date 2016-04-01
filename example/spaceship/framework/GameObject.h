@@ -21,13 +21,12 @@
 #include "globals.h"
 
 #include "behaviac/agent/agent.h"
-#include "behaviac/world/world.h"
 #include "behaviac/agent/registermacros.h"
 
 class CL_Sprite;
 class CL_CollisionOutline;
 
-const unsigned int kIdMask_Wolrd =		0x0001;
+const unsigned int kIdMask_World =		0x0001;
 const unsigned int kIdMask_Player =		0x0002;
 const unsigned int kIdMask_Opponent =	0x0004;
 const unsigned int kIdMask_Projectile =	0x0008;

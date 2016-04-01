@@ -16,8 +16,7 @@
 #include "behaviac/base/core/factory.h"
 #include "behaviac/base/core/logging/log.h"
 
-
-bool FactoryNewUnregisterSub(FactoryContainer* creators, const CStringID& typeID)
+bool FactoryNewUnregisterSub(FactoryContainer* creators, const behaviac::CStringID& typeID)
 {
     creators->Lock();
     SFactoryBucket bucket(typeID, NULL);
@@ -26,8 +25,8 @@ bool FactoryNewUnregisterSub(FactoryContainer* creators, const CStringID& typeID
 
     if (itFound != itEnd)
     {
-		SFactoryBucket& item = *itFound;
-		BEHAVIAC_FREE(item.m_typeConstructor);
+        SFactoryBucket& item = *itFound;
+        BEHAVIAC_FREE(item.m_typeConstructor);
         creators->erase(itFound);
         creators->Unlock();
         return true;
@@ -38,7 +37,7 @@ bool FactoryNewUnregisterSub(FactoryContainer* creators, const CStringID& typeID
     return false;
 }
 
-bool FactoryNewRegisterSub(FactoryContainer* creators, const CStringID& typeID, void* typeConstructor)
+bool FactoryNewRegisterSub(FactoryContainer* creators, const behaviac::CStringID& typeID, void* typeConstructor)
 {
     SFactoryBucket bucket(typeID, typeConstructor);
     creators->Lock();
@@ -50,6 +49,7 @@ bool FactoryNewRegisterSub(FactoryContainer* creators, const CStringID& typeID, 
     if (!wasThere)
     {
         creators->push_back(bucket);
+
     }
     else
     {
@@ -58,7 +58,7 @@ bool FactoryNewRegisterSub(FactoryContainer* creators, const CStringID& typeID, 
         BEHAVIAC_LOG2(BEHAVIAC_LOG_WARNING, "Trying to register an already registered type %d -- %s\n", typeID.GetUniqueID(), typeID.c_str());
 #else
 
-		BEHAVIAC_ASSERT(0, "Trying to register an already registered type %d", typeID.GetUniqueID());
+        BEHAVIAC_ASSERT(0, "Trying to register an already registered type %d", typeID.GetUniqueID());
 #endif // #if STRINGID_USESTRINGCONTENT
     }
 

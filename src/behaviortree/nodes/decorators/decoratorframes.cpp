@@ -14,39 +14,49 @@
 #include "behaviac/base/base.h"
 #include "behaviac/behaviortree/nodes/decorators/decoratorframes.h"
 #include "behaviac/agent/agent.h"
+#include "behaviac/behaviortree/nodes/actions/action.h"
+#include "behaviac/behaviortree/nodes/conditions/condition.h"
 
 namespace behaviac
 {
-	DecoratorFrames::DecoratorFrames() : m_frames_var(0)
-	{
+	DecoratorFrames::DecoratorFrames() : m_frames_var(0), m_frames_method(0)
+    {
+    }
+
+    DecoratorFrames::~DecoratorFrames()
+    {
+		BEHAVIAC_DELETE(this->m_frames_method);
 	}
 
-	DecoratorFrames::~DecoratorFrames()
-	{
-		BEHAVIAC_DELETE(m_frames_var);
-	}
+    void DecoratorFrames::load(int version, const char* agentType, const properties_t& properties)
+    {
+        super::load(version, agentType, properties);
 
-	Property* LoadRight(const char* value, const behaviac::string& propertyName, behaviac::string& typeName);
-
-	void DecoratorFrames::load(int version, const char* agentType, const properties_t& properties)
-	{
-		super::load(version, agentType, properties);
-
-		for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
-		{
+        for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
+        {
 			const property_t& p = (*it);
 
-			if (!strcmp(p.name, "Time"))
+			if (!strcmp(p.name, "Frames"))
 			{
-				behaviac::string typeName;
-				behaviac::string propertyName;
-				this->m_frames_var = LoadRight(p.value, propertyName, typeName);
-			}
-		}
-	}
+				const char* pParenthesis = strchr(p.value, '(');
 
-	int DecoratorFrames::GetFrames(Agent* pAgent) const
-	{
+				if (pParenthesis == 0)
+				{
+					behaviac::string typeName;
+					behaviac::string propertyName;
+					this->m_frames_var = Condition::LoadRight(p.value, typeName);
+				}
+				else
+				{
+					//method
+					this->m_frames_method = Action::LoadMethod(p.value);
+				}
+			}
+        }
+    }
+
+    int DecoratorFrames::GetFrames(Agent* pAgent) const
+    {
 		if (this->m_frames_var)
 		{
 			BEHAVIAC_ASSERT(this->m_frames_var);
@@ -54,97 +64,107 @@ namespace behaviac
 			uint64_t frames = pP->GetValue(pAgent);
 
 			return (frames == ((uint64_t)-1) ? -1 : (int)frames);
+
 		}
-
-		return 0;
-	}
-
-	BehaviorTask* DecoratorFrames::createTask() const
-	{
-		DecoratorFramesTask* pTask = BEHAVIAC_NEW DecoratorFramesTask();
-
-		return pTask;
-	}
-
-	DecoratorFramesTask::DecoratorFramesTask() : DecoratorTask(), m_start(0), m_frames(0)
-	{
-	}
-
-	DecoratorFramesTask::~DecoratorFramesTask()
-	{
-	}
-
-	int DecoratorFramesTask::GetFrames(Agent* pAgent) const
-	{
-		BEHAVIAC_ASSERT(DecoratorFrames::DynamicCast(this->GetNode()));
-		const DecoratorFrames* pNode = (const DecoratorFrames*)(this->GetNode());
-
-		return pNode ? pNode->GetFrames(pAgent) : 0;
-	}
-
-	void DecoratorFramesTask::copyto(BehaviorTask* target) const
-	{
-		super::copyto(target);
-
-		BEHAVIAC_ASSERT(DecoratorFramesTask::DynamicCast(target));
-		DecoratorFramesTask* ttask = (DecoratorFramesTask*)target;
-
-		ttask->m_start = this->m_start;
-		ttask->m_frames = this->m_frames;
-	}
-
-	void DecoratorFramesTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
-
-		if (this->m_status != BT_INVALID)
+		else if (this->m_frames_method)
 		{
-			CSerializationID  startId("start");
-			node->setAttr(startId, this->m_start);
+			Agent* pParent = Agent::GetInstance(pAgent, this->m_frames_method->GetInstanceNameString());
+			BEHAVIAC_ASSERT(pParent);
 
-			CSerializationID  framesId("frames");
-			node->setAttr(framesId, this->m_frames);
+			this->m_frames_method->run(pParent, pAgent);
+
+			int frames = this->m_frames_method->GetReturnValue<int>(pParent);
+
+			return frames;
 		}
-	}
 
-	void DecoratorFramesTask::load(ISerializableNode* node)
-	{
-		super::load(node);
+        return 0;
+    }
 
-		if (this->m_status != BT_INVALID)
-		{
-			CSerializationID  startId("start");
-			behaviac::string attrStr;
-			node->getAttr(startId, attrStr);
-			StringUtils::FromString(attrStr.c_str(), this->m_start);
+    BehaviorTask* DecoratorFrames::createTask() const
+    {
+        DecoratorFramesTask* pTask = BEHAVIAC_NEW DecoratorFramesTask();
 
-			CSerializationID  framesId("frames");
-			node->getAttr(framesId, attrStr);
-			StringUtils::FromString(attrStr.c_str(), this->m_frames);
-		}
-	}
+        return pTask;
+    }
 
-	bool DecoratorFramesTask::onenter(Agent* pAgent)
-	{
-		super::onenter(pAgent);
+    DecoratorFramesTask::DecoratorFramesTask() : DecoratorTask(), m_start(0), m_frames(0)
+    {
+    }
 
-		this->m_start = 0;
-		this->m_frames = this->GetFrames(pAgent);
+    DecoratorFramesTask::~DecoratorFramesTask()
+    {
+    }
 
-		return (this->m_frames >= 0);
-	}
+    int DecoratorFramesTask::GetFrames(Agent* pAgent) const
+    {
+        BEHAVIAC_ASSERT(DecoratorFrames::DynamicCast(this->GetNode()));
+        const DecoratorFrames* pNode = (const DecoratorFrames*)(this->GetNode());
 
-	EBTStatus DecoratorFramesTask::decorate(EBTStatus status)
-	{
+        return pNode ? pNode->GetFrames(pAgent) : 0;
+    }
+
+    void DecoratorFramesTask::copyto(BehaviorTask* target) const
+    {
+        super::copyto(target);
+
+        BEHAVIAC_ASSERT(DecoratorFramesTask::DynamicCast(target));
+        DecoratorFramesTask* ttask = (DecoratorFramesTask*)target;
+
+        ttask->m_start = this->m_start;
+        ttask->m_frames = this->m_frames;
+    }
+
+    void DecoratorFramesTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
+
+        if (this->m_status != BT_INVALID)
+        {
+            CSerializationID  startId("start");
+            node->setAttr(startId, this->m_start);
+
+            CSerializationID  framesId("frames");
+            node->setAttr(framesId, this->m_frames);
+        }
+    }
+
+    void DecoratorFramesTask::load(ISerializableNode* node)
+    {
+        super::load(node);
+
+        if (this->m_status != BT_INVALID)
+        {
+            CSerializationID  startId("start");
+            behaviac::string attrStr;
+            node->getAttr(startId, attrStr);
+            StringUtils::FromString(attrStr.c_str(), this->m_start);
+
+            CSerializationID  framesId("frames");
+            node->getAttr(framesId, attrStr);
+            StringUtils::FromString(attrStr.c_str(), this->m_frames);
+        }
+    }
+
+    bool DecoratorFramesTask::onenter(Agent* pAgent)
+    {
+        super::onenter(pAgent);
+
+        this->m_start = Workspace::GetInstance()->GetFrameSinceStartup();
+        this->m_frames = this->GetFrames(pAgent);
+
+        return (this->m_frames > 0);
+    }
+
+    EBTStatus DecoratorFramesTask::decorate(EBTStatus status)
+    {
         BEHAVIAC_UNUSED_VAR(status);
-        
-		this->m_start += (int)(Workspace::GetDeltaFrames());
-		if (this->m_start >= this->m_frames)
+
+		if (Workspace::GetInstance()->GetFrameSinceStartup() - this->m_start + 1 >= this->m_frames)
 		{
 			return BT_SUCCESS;
 		}
 
         return BT_RUNNING;
     }
-
 }//namespace behaviac

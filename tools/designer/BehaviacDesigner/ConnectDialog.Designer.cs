@@ -24,12 +24,11 @@ namespace Behaviac.Design
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
+        protected override void Dispose(bool disposing) {
+            if (disposing && (components != null)) {
                 components.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
@@ -39,8 +38,7 @@ namespace Behaviac.Design
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConnectDialog));
             this.tbServer = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
@@ -48,6 +46,7 @@ namespace Behaviac.Design
             this.tbPort = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.localIPCheckBox = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // tbServer
@@ -97,6 +96,17 @@ namespace Behaviac.Design
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.UseVisualStyleBackColor = false;
             // 
+            // localIPCheckBox
+            // 
+            resources.ApplyResources(this.localIPCheckBox, "localIPCheckBox");
+            this.localIPCheckBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(65)))), ((int)(((byte)(65)))), ((int)(((byte)(65)))));
+            this.localIPCheckBox.Checked = true;
+            this.localIPCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.localIPCheckBox.ForeColor = System.Drawing.Color.LightGray;
+            this.localIPCheckBox.Name = "localIPCheckBox";
+            this.localIPCheckBox.UseVisualStyleBackColor = false;
+            this.localIPCheckBox.CheckedChanged += new System.EventHandler(this.localIPCheckBox_CheckedChanged);
+            // 
             // ConnectDialog
             // 
             this.AcceptButton = this.btnOk;
@@ -104,6 +114,7 @@ namespace Behaviac.Design
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.CancelButton = this.btnCancel;
+            this.Controls.Add(this.localIPCheckBox);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.tbPort);
@@ -116,7 +127,6 @@ namespace Behaviac.Design
             this.MinimizeBox = false;
             this.Name = "ConnectDialog";
             this.ShowInTaskbar = false;
-            this.Shown += new System.EventHandler(this.ConnectDialog_Shown);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -130,5 +140,6 @@ namespace Behaviac.Design
         private System.Windows.Forms.TextBox tbPort;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.CheckBox localIPCheckBox;
     }
 }

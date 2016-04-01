@@ -11,8 +11,6 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace behaviac
@@ -21,7 +19,8 @@ namespace behaviac
     {
         public Assignment()
         {
-		}
+        }
+
         ~Assignment()
         {
             m_opl = null;
@@ -33,21 +32,21 @@ namespace behaviac
         {
             base.load(version, agentType, properties);
 
-            string propertyName = null;
-
-            foreach (property_t p in properties)
+            for (int i = 0; i < properties.Count; ++i)
             {
+                property_t p = properties[i];
                 if (p.name == "Opl")
                 {
-                    this.m_opl = Condition.LoadLeft(p.value, ref propertyName, null);
+                    this.m_opl = Condition.LoadLeft(p.value);
                 }
                 else if (p.name == "Opr")
                 {
                     int pParenthesis = p.value.IndexOf('(');
+
                     if (pParenthesis == -1)
                     {
                         string typeName = null;
-                        this.m_opr = Condition.LoadRight(p.value, propertyName, ref typeName);
+                        this.m_opr = Condition.LoadRight(p.value, ref typeName);
                     }
                     else
                     {
@@ -66,27 +65,26 @@ namespace behaviac
         {
             bool bValid = false;
 
-            if (opr_m != null)
+            if (opl != null)
             {
-                object returnValue = opr_m.Invoke(pAgent);
+                if (opr_m != null)
+                {
+                    object returnValue = opr_m.Invoke(pAgent);
 
-                Agent pParentOpl = opl.GetParentAgent(pAgent);
-                opl.SetValue(pParentOpl, returnValue);
+                    Agent pParentOpl = opl.GetParentAgent(pAgent);
+                    opl.SetValue(pParentOpl, returnValue);
 
-                bValid = true;
-            }
-            else if (opr != null && opl != null)
-            {
-                Agent pParentL = opl.GetParentAgent(pAgent);
-                Agent pParentR = opr.GetParentAgent(pAgent);
+                    bValid = true;
+                }
+                else if (opr != null)
+                {
+                    Agent pParentL = opl.GetParentAgent(pAgent);
+                    Agent pParentR = opr.GetParentAgent(pAgent);
 
-                opl.SetFrom(pParentR, opr, pParentL);
+                    opl.SetFrom(pParentR, opr, pParentL);
 
-                bValid = true;
-            }
-            else
-            {
-                //Debug.Check(false);
+                    bValid = true;
+                }
             }
 
             return bValid;
@@ -111,14 +109,13 @@ namespace behaviac
         protected Property m_opr;
         protected CMethodBase m_opr_m;
 
-        class AssignmentTask : LeafTask
+        private class AssignmentTask : LeafTask
         {
             public AssignmentTask()
             { }
 
             ~AssignmentTask()
             {
-
             }
 
             public override void copyto(BehaviorTask target)
@@ -130,20 +127,17 @@ namespace behaviac
             {
                 base.save(node);
             }
+
             public override void load(ISerializableNode node)
             {
                 base.load(node);
-            }
-
-            protected override bool isContinueTicking()
-            {
-                return false;
             }
 
             protected override bool onenter(Agent pAgent)
             {
                 return true;
             }
+
             protected override void onexit(Agent pAgent, EBTStatus s)
             {
             }
@@ -157,6 +151,7 @@ namespace behaviac
 
                 EBTStatus result = EBTStatus.BT_SUCCESS;
                 bool bValid = Assignment.EvaluteAssignment(pAgent, pAssignmentNode.m_opl, pAssignmentNode.m_opr, pAssignmentNode.m_opr_m);
+
                 if (!bValid)
                 {
                     result = pAssignmentNode.update_impl(pAgent, childStatus);
@@ -164,8 +159,6 @@ namespace behaviac
 
                 return result;
             }
-
-
         }
     }
 }

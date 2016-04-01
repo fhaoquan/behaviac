@@ -16,83 +16,110 @@
 
 namespace behaviac
 {
-	DecoratorFailureUntil::DecoratorFailureUntil()
-	{}
+    DecoratorFailureUntil::DecoratorFailureUntil()
+    {}
 
-	DecoratorFailureUntil::~DecoratorFailureUntil()
-	{}
+    DecoratorFailureUntil::~DecoratorFailureUntil()
+    {}
 
-	void DecoratorFailureUntil::load(int version, const char* agentType, const properties_t& properties)
+    void DecoratorFailureUntil::load(int version, const char* agentType, const properties_t& properties)
+    {
+        DecoratorCount::load(version, agentType, properties);
+    }
+
+    bool DecoratorFailureUntil::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+    {
+        if (!DecoratorFailureUntil::DynamicCast(pTask->GetNode()))
+        {
+            return false;
+        }
+
+        return super::IsValid(pAgent, pTask);
+    }
+
+    BehaviorTask* DecoratorFailureUntil::createTask() const
+    {
+        DecoratorFailureUntilTask* pTask = BEHAVIAC_NEW DecoratorFailureUntilTask();
+
+        return pTask;
+    }
+
+    //bool DecoratorFailureUntilTask::NeedRestart() const
+    //{
+    //	return true;
+    //}
+
+    void DecoratorFailureUntilTask::copyto(BehaviorTask* target) const
+    {
+        super::copyto(target);
+    }
+
+    void DecoratorFailureUntilTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
+    }
+
+    void DecoratorFailureUntilTask::load(ISerializableNode* node)
+    {
+        super::load(node);
+    }
+
+	void DecoratorFailureUntilTask::onreset(Agent* pAgent)
 	{
-		DecoratorCount::load(version, agentType, properties);
+		BEHAVIAC_UNUSED_VAR(pAgent);
+
+		this->m_n = 0;
 	}
 
-	bool DecoratorFailureUntil::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+	bool DecoratorFailureUntilTask::onenter(Agent* pAgent)
 	{
-		if (!DecoratorFailureUntil::DynamicCast(pTask->GetNode()))
+		//super::onenter(pAgent);
+
+		//don't reset the m_n if it is restarted
+		if (this->m_n == 0)
 		{
-			return false;
+			int count = this->GetCount(pAgent);
+
+			if (count == 0)
+			{
+				return false;
+			}
+
+			this->m_n = count;
+
 		}
-	
-		return super::IsValid(pAgent, pTask);
-	}
+		else
+		{
+			BEHAVIAC_ASSERT(true);
+		}
 
-	BehaviorTask* DecoratorFailureUntil::createTask() const
-	{
-		DecoratorFailureUntilTask* pTask = BEHAVIAC_NEW DecoratorFailureUntilTask();
-		
-
-		return pTask;
-	}
-
-	bool DecoratorFailureUntilTask::NeedRestart() const
-	{
 		return true;
 	}
 
-	void DecoratorFailureUntilTask::copyto(BehaviorTask* target) const
-	{
-		super::copyto(target);
-	}
 
+    EBTStatus DecoratorFailureUntilTask::decorate(EBTStatus status)
+    {
+        BEHAVIAC_UNUSED_VAR(status);
 
-	void DecoratorFailureUntilTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
-	}
+        if (this->m_n > 0)
+        {
+            this->m_n--;
 
-	void DecoratorFailureUntilTask::load(ISerializableNode* node)
-	{
-		super::load(node);
-	}
+            if (this->m_n == 0)
+            {
+                return BT_SUCCESS;
+            }
 
+            return BT_FAILURE;
+        }
 
+        if (this->m_n == -1)
+        {
+            return BT_FAILURE;
+        }
 
+        BEHAVIAC_ASSERT(this->m_n == 0);
 
-	EBTStatus DecoratorFailureUntilTask::decorate(EBTStatus status)
-	{
-		BEHAVIAC_UNUSED_VAR(status);
-
-		if (this->m_n > 0)
-		{
-			this->m_n--;
-
-			if (this->m_n == 0)
-			{
-				return BT_SUCCESS;
-			}
-
-			return BT_FAILURE;
-		}
-
-		if (this->m_n == -1)
-		{
-			return BT_FAILURE;
-		}
-
-		BEHAVIAC_ASSERT(this->m_n == 0);
-
-		return BT_SUCCESS;
-	}
-
+        return BT_SUCCESS;
+    }
 }//namespace behaviac

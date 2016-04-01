@@ -33,14 +33,19 @@ namespace Behaviac.Design.Attachments
         Return
     }
 
-	/// <summary>
-	/// This class represents an event which is attached to a node.
-	/// </summary>
+    /// <summary>
+    /// This class represents an event which is attached to a node.
+    /// </summary>
     public class Event : Attach
-	{
+    {
         public Event(Behaviac.Design.Nodes.Node node)
             : base(node, Resources.Event, Resources.EventDesc)
         {
+        }
+
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/attachment/#section-1"; }
         }
 
         public override string ExportClass
@@ -64,20 +69,15 @@ namespace Behaviac.Design.Attachments
             set { _triggerMode = value; }
         }
 
-
-        private MethodDef _event;
-        [DesignerMethodEnum("EventName", "EventNameDesc", "Event", DesignerProperty.DisplayMode.Parameter, 2, DesignerProperty.DesignerFlags.NoFlags, MethodType.Event)]
-        public MethodDef EventName
-        {
-            get { return _event; }
-            set { this._event = value; }
-        }
-
         protected BehaviorNode _referencedBehavior;
         public BehaviorNode ReferencedBehavior
         {
             get { return _referencedBehavior; }
-            set { _referencedBehavior = value; }
+            set
+            {
+                _referencedBehavior = value;
+                this.SetTask();
+            }
         }
 
         [DesignerString("ReferencedBehaviorFilename", "ReferencedBehaviorFilenameDesc", "Event", DesignerProperty.DisplayMode.NoDisplay, 3, DesignerProperty.DesignerFlags.ReadOnly)]
@@ -86,7 +86,7 @@ namespace Behaviac.Design.Attachments
             get
             {
                 if (_referencedBehavior == null)
-                    return string.Empty;
+                { return string.Empty; }
 
                 // make the path of the reference relative
                 string relativeFilename = _referencedBehavior.MakeRelative(_referencedBehavior.FileManager.Filename);
@@ -96,6 +96,7 @@ namespace Behaviac.Design.Attachments
                 Debug.Check(!Path.IsPathRooted(relativeFilename));
                 relativeFilename = relativeFilename.Replace('\\', '/');
                 int pos = relativeFilename.IndexOf(".xml");
+
                 if (pos != -1)
                 {
                     relativeFilename = relativeFilename.Remove(pos);
@@ -111,6 +112,7 @@ namespace Behaviac.Design.Attachments
                 Debug.Check(Path.IsPathRooted(absoluteFilename));
 
                 int pos = absoluteFilename.IndexOf(".xml");
+
                 if (pos == -1)
                 {
                     absoluteFilename += ".xml";
@@ -127,28 +129,70 @@ namespace Behaviac.Design.Attachments
                 _referencedBehavior = BehaviorManager.Instance.LoadBehavior(absoluteFilename);
                 Debug.Check(_referencedBehavior != null);
 
+                Behavior b = this.Behavior as Behavior;
+                Debug.Check(b != null);
+
+                b.AgentType.AddPars(b.LocalVars);
+
                 //((Node)_referencedBehavior).WasModified += new WasModifiedEventDelegate(referencedBehavior_WasModified);
                 //_referencedBehavior.WasRenamed += new Behavior.WasRenamedEventDelegate(referencedBehavior_WasRenamed);
-                Behaviac.Design.Nodes.Behavior refB = ((Behaviac.Design.Nodes.Behavior)_referencedBehavior);
-                List<ParInfo> allPars = new List<ParInfo>();
-                ((Nodes.Node)refB).GetAllPars(ref allPars);
-                foreach (ParInfo p in allPars)
-                {
-                    _pars.Add(p.Clone());
-                }
+                this.SetTask();
             }
         }
 
-        protected List<ParInfo> _pars = new List<ParInfo>();
-        public List<ParInfo> Pars
+        private void SetTask()
         {
-            get { return _pars; }
-            set { _pars = value; }
+            Behaviac.Design.Nodes.Behavior refB = ((Behaviac.Design.Nodes.Behavior)_referencedBehavior);
+
+            if (refB.Children.Count > 0 && refB.Children[0] is Task)
+            {
+                Task rootTask = refB.Children[0] as Task;
+                if (rootTask.Prototype != null)
+                    this._task = (MethodDef)rootTask.Prototype.Clone();
+            }
         }
 
-        public override void GetAllPars(ref List<ParInfo> pars)
+        public override string Description
         {
-            pars = Pars;
+            get
+            {
+                string str = base.Description;
+
+                if (_task != null)
+                { str += '\n' + _task.GetPrototype(); }
+
+                return str;
+            }
+        }
+
+        private MethodDef _task = null;
+        [DesignerMethodEnum("TaskPrototype", "TaskPrototypeDesc", "Task", DesignerProperty.DisplayMode.Parameter, 0, DesignerProperty.DesignerFlags.NoFlags | DesignerProperty.DesignerFlags.ReadOnly | DesignerProperty.DesignerFlags.NoDisplayOnProperty | DesignerProperty.DesignerFlags.ReadOnlyParams | DesignerProperty.DesignerFlags.NoSave, MethodType.Task)]
+        public MethodDef Task
+        {
+            get { return _task; }
+            set { this._task = value; }
+        }
+
+        protected override string GeneratePropertiesLabel()
+        {
+            string newlabel = string.Empty;
+
+            if (this._task != null)
+            {
+                newlabel = this._task.PrototypeName;
+
+                if (this._task.Params.Count == 0)
+                {
+                    newlabel += "()";
+                }
+            }
+            else
+            {
+                Behavior b = this.ReferencedBehavior as Behavior;
+                newlabel = b.Label;
+            }
+
+            return newlabel;
         }
 
         protected override void CloneProperties(Behaviac.Design.Attachments.Attachment newattach)
@@ -157,35 +201,25 @@ namespace Behaviac.Design.Attachments
 
             Event prec = (Event)newattach;
 
-            if (this._event != null)
-            {
-                prec._event = (MethodDef)this._event.Clone();
-            }
-
             if (this._referencedBehavior != null)
             {
                 prec._referencedBehavior = this._referencedBehavior;
             }
 
             prec._bTriggeredOnce = this._bTriggeredOnce;
+            prec._triggerMode = this._triggerMode;
 
-            // Clone the Pars.
-            prec.Pars.Clear();
-            foreach (ParInfo par in this.Pars)
+            if (this._task != null)
             {
-                prec.Pars.Add(par.Clone());
+                prec._task = (MethodDef)this._task.Clone();
             }
         }
 
         public override void CheckForErrors(Behaviac.Design.Nodes.BehaviorNode rootBehavior, List<Behaviac.Design.Nodes.Node.ErrorCheck> result)
         {
-            if (this._event == null)
-            {
-                result.Add(new Behaviac.Design.Nodes.Node.ErrorCheck(this.Node, this.Label, Behaviac.Design.Nodes.ErrorCheckLevel.Error, "Event is not specified!"));
-            }
             if (this._referencedBehavior == null)
             {
-                result.Add(new Behaviac.Design.Nodes.Node.ErrorCheck(this.Node, this.Label, Behaviac.Design.Nodes.ErrorCheckLevel.Error, "Behavior is not specified!"));
+                result.Add(new Behaviac.Design.Nodes.Node.ErrorCheck(this.Node, this.Id, this.Label, Behaviac.Design.Nodes.ErrorCheckLevel.Error, "Behavior is not specified!"));
             }
 
             base.CheckForErrors(rootBehavior, result);
@@ -194,10 +228,11 @@ namespace Behaviac.Design.Attachments
         public override void GetReferencedFiles(ref List<string> referencedFiles)
         {
             string file = this.ReferenceFilename;
+
             if (!string.IsNullOrEmpty(file) && !referencedFiles.Contains(file))
             {
                 referencedFiles.Add(file);
             }
         }
-	}
+    }
 }

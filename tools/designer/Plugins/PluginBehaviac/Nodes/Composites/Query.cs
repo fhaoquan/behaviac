@@ -26,11 +26,11 @@ namespace PluginBehaviac.Nodes
     [NodeDesc("Actions", NodeIcon.Query)]
     class Query : Behaviac.Design.Nodes.Node
 	{
-        //bool _acceptsEvents = false;
+        protected ConnectorSingle _requery;
         public Query()
             : base(Resources.Query, Resources.QueryDesc)
 		{
-            //_acceptsEvents = true;
+            _requery = new ConnectorSingle(_children, Resources.Requery, Connector.kInterupt);
 		}
 
         public override string ExportClass
@@ -39,7 +39,7 @@ namespace PluginBehaviac.Nodes
         }
 
         private string _domain = "";
-        [DesignerString("BehaviorDomain", "BehaviorDomainDesc", "Query", DesignerProperty.DisplayMode.List, 0, DesignerProperty.DesignerFlags.NoFlags)]
+        [DesignerString("BehaviorDomain", "BehaviorDomainDesc", "Query", DesignerProperty.DisplayMode.NoDisplay, 0, DesignerProperty.DesignerFlags.NoFlags)]
         public string Domain
         {
             get { return _domain; }
@@ -49,7 +49,7 @@ namespace PluginBehaviac.Nodes
         public class Descriptor_t
         {
             private VariableDef _attribute;
-            [DesignerPropertyEnum("Attribute", "AttributeDesc", "Query", DesignerProperty.DisplayMode.NoDisplay, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.Self | DesignerPropertyEnum.AllowStyles.Global, "", "Reference")]
+            [DesignerPropertyEnum("Attribute", "AttributeDesc", "Query", DesignerProperty.DisplayMode.NoDisplay, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.Self | DesignerPropertyEnum.AllowStyles.Instance, "", "Reference")]
             public VariableDef Attribute
             {
                 get { return _attribute; }
@@ -91,16 +91,6 @@ namespace PluginBehaviac.Nodes
             get { return _descriptors; }
             set { this._descriptors = value; }
         }
-
-        //public override bool AcceptsAttachment(Type type)
-        //{
-        //    if (_acceptsEvents)
-        //    {
-        //        return type.IsSubclassOf(typeof(Behaviac.Design.Attachments.Predicate));
-        //    }
-
-        //    return false;
-        //}
 
         protected override void CloneProperties(Node newnode)
         {

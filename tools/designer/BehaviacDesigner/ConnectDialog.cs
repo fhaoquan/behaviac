@@ -21,58 +21,34 @@ using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
 
-
 namespace Behaviac.Design
 {
     public partial class ConnectDialog : Form
     {
-        public ConnectDialog(int portNr)
+        public ConnectDialog(bool useLocalIp, string ip, int portNr)
         {
             InitializeComponent();
-            m_portNr = portNr;
+
+            localIPCheckBox.Checked = useLocalIp;
+            tbServer.Text = !useLocalIp && Utilities.IPOnlyNumbersAndDots(ip) ? ip : Utilities.GetLocalIP();
+            tbServer.Enabled = !useLocalIp;
+            tbPort.Text = portNr.ToString();
+        }
+
+        public bool UseLocalIP()
+        {
+            return localIPCheckBox.Checked;
         }
 
         public String GetServer()
         {
-            if (IPOnlyNumbersAndDots(tbServer.Text))
-                return tbServer.Text;
-            else
-                return GetIP(tbServer.Text);
+            return Utilities.IPOnlyNumbersAndDots(tbServer.Text) ? tbServer.Text : Utilities.GetIP(tbServer.Text);
         }
+
         public int GetPort()
         {
             return Convert.ToInt32(tbPort.Text);
         }
-
-        private static String GetLocalIP()
-        {
-            String strHostName = Dns.GetHostName();
-            return GetIP(strHostName);
-        }
-        private static String GetIP(String strHostName)
-        {
-            // Find host by name
-            IPHostEntry iphostentry = Dns.GetHostEntry(strHostName);
-
-            // Grab the first IP addresses
-            String IPStr = "";
-            foreach (IPAddress ipaddress in iphostentry.AddressList)
-            {
-                IPStr = ipaddress.ToString();
-                if (IPOnlyNumbersAndDots(IPStr))
-                {
-                    return IPStr;
-                }
-            }
-            return IPStr;
-        }
-
-        private void ConnectDialog_Shown(object sender, EventArgs e)
-        {
-            tbServer.Text = GetLocalIP();
-            tbPort.Text = m_portNr.ToString();
-        }
-        int m_portNr;
 
         private void tbPort_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -81,14 +57,18 @@ namespace Behaviac.Design
                 e.Handled = true;
             }
         }
-        private static bool IPOnlyNumbersAndDots(String s)
+
+        private void localIPCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            for (int i = 0; i < s.Length; ++i)
+            if (this.UseLocalIP())
             {
-                if (!char.IsDigit(s[i]) && s[i] != '.')
-                    return false;
+                tbServer.Text = Utilities.GetLocalIP();
+                tbServer.Enabled = false;
             }
-            return true;
+            else
+            {
+                tbServer.Enabled = true;
+            }
         }
     }
 }

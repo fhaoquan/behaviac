@@ -1,4 +1,4 @@
-﻿////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2009, Daniel Kollmann
 // All rights reserved.
 //
@@ -35,47 +35,49 @@ namespace Behaviac.Design
 {
     partial class NodeTreeList
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
+        protected override void Dispose(bool disposing) {
+            if (disposing && (components != null)) {
                 components.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NodeTreeList));
             this.treeView = new System.Windows.Forms.TreeView();
             this.imageList = new System.Windows.Forms.ImageList(this.components);
             this.toolStrip = new System.Windows.Forms.ToolStrip();
+            this.showSelectedNodeButton = new System.Windows.Forms.ToolStripButton();
+            this.settingButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.expandButton = new System.Windows.Forms.ToolStripButton();
             this.collapseButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.cancelButton = new System.Windows.Forms.ToolStripButton();
             this.debugLabel = new System.Windows.Forms.ToolStripLabel();
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.documentMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.debugMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.parMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.parameterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.separator = new System.Windows.Forms.ToolStripSeparator();
+            this.showPropMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showPlanningMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.toolStrip.SuspendLayout();
             this.contextMenuStrip.SuspendLayout();
@@ -92,6 +94,7 @@ namespace Behaviac.Design
             this.treeView.ItemDrag += new System.Windows.Forms.ItemDragEventHandler(this.treeView_ItemDrag);
             this.treeView.NodeMouseHover += new System.Windows.Forms.TreeNodeMouseHoverEventHandler(this.treeView_NodeMouseHover);
             this.treeView.DoubleClick += new System.EventHandler(this.treeView_DoubleClick);
+            this.treeView.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeView_KeyDown);
             this.treeView.MouseLeave += new System.EventHandler(this.treeView_MouseLeave);
             this.treeView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.treeView_MouseUp);
             // 
@@ -142,6 +145,9 @@ namespace Behaviac.Design
             resources.ApplyResources(this.toolStrip, "toolStrip");
             this.toolStrip.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showSelectedNodeButton,
+            this.settingButton,
+            this.toolStripSeparator3,
             this.expandButton,
             this.collapseButton,
             this.toolStripSeparator1,
@@ -149,6 +155,26 @@ namespace Behaviac.Design
             this.debugLabel});
             this.toolStrip.Name = "toolStrip";
             this.toolTip.SetToolTip(this.toolStrip, resources.GetString("toolStrip.ToolTip"));
+            this.toolStrip.SizeChanged += new System.EventHandler(this.toolStrip_SizeChanged);
+            // 
+            // showSelectedNodeButton
+            // 
+            resources.ApplyResources(this.showSelectedNodeButton, "showSelectedNodeButton");
+            this.showSelectedNodeButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.showSelectedNodeButton.Name = "showSelectedNodeButton";
+            this.showSelectedNodeButton.Click += new System.EventHandler(this.showSelectedNodeButton_Click);
+            // 
+            // settingButton
+            // 
+            resources.ApplyResources(this.settingButton, "settingButton");
+            this.settingButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.settingButton.Name = "settingButton";
+            this.settingButton.Click += new System.EventHandler(this.settingButton_Click);
+            // 
+            // toolStripSeparator3
+            // 
+            resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
             // 
             // expandButton
             // 
@@ -187,12 +213,22 @@ namespace Behaviac.Design
             resources.ApplyResources(this.contextMenuStrip, "contextMenuStrip");
             this.contextMenuStrip.BackColor = System.Drawing.Color.DarkGray;
             this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.documentMenuItem,
             this.debugMenuItem,
-            this.toolStripSeparator2,
-            this.parMenuItem,
-            this.parameterMenuItem});
+            this.separator,
+            this.showPropMenuItem,
+            this.showPlanningMenuItem});
             this.contextMenuStrip.Name = "contextMenuStrip";
             this.toolTip.SetToolTip(this.contextMenuStrip, resources.GetString("contextMenuStrip.ToolTip"));
+            this.contextMenuStrip.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip_Opening);
+            // 
+            // documentMenuItem
+            // 
+            resources.ApplyResources(this.documentMenuItem, "documentMenuItem");
+            this.documentMenuItem.BackColor = System.Drawing.Color.DarkGray;
+            this.documentMenuItem.ForeColor = System.Drawing.SystemColors.WindowText;
+            this.documentMenuItem.Name = "documentMenuItem";
+            this.documentMenuItem.Click += new System.EventHandler(this.documentMenuItem_Click);
             // 
             // debugMenuItem
             // 
@@ -202,28 +238,26 @@ namespace Behaviac.Design
             this.debugMenuItem.Name = "debugMenuItem";
             this.debugMenuItem.Click += new System.EventHandler(this.debugMenuItem_Click);
             // 
-            // toolStripSeparator2
+            // separator
             // 
-            resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
-            this.toolStripSeparator2.BackColor = System.Drawing.Color.DarkGray;
-            this.toolStripSeparator2.ForeColor = System.Drawing.SystemColors.WindowText;
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            resources.ApplyResources(this.separator, "separator");
+            this.separator.BackColor = System.Drawing.Color.DarkGray;
+            this.separator.ForeColor = System.Drawing.SystemColors.WindowText;
+            this.separator.Name = "separator";
             // 
-            // parMenuItem
+            // showPropMenuItem
             // 
-            resources.ApplyResources(this.parMenuItem, "parMenuItem");
-            this.parMenuItem.BackColor = System.Drawing.Color.DarkGray;
-            this.parMenuItem.ForeColor = System.Drawing.SystemColors.WindowText;
-            this.parMenuItem.Name = "parMenuItem";
-            this.parMenuItem.Click += new System.EventHandler(this.parMenuItem_Click);
+            resources.ApplyResources(this.showPropMenuItem, "showPropMenuItem");
+            this.showPropMenuItem.BackColor = System.Drawing.Color.DarkGray;
+            this.showPropMenuItem.ForeColor = System.Drawing.SystemColors.WindowText;
+            this.showPropMenuItem.Name = "showPropMenuItem";
+            this.showPropMenuItem.Click += new System.EventHandler(this.parameterMenuItem_Click);
             // 
-            // parameterMenuItem
+            // showPlanningMenuItem
             // 
-            resources.ApplyResources(this.parameterMenuItem, "parameterMenuItem");
-            this.parameterMenuItem.BackColor = System.Drawing.Color.DarkGray;
-            this.parameterMenuItem.ForeColor = System.Drawing.SystemColors.WindowText;
-            this.parameterMenuItem.Name = "parameterMenuItem";
-            this.parameterMenuItem.Click += new System.EventHandler(this.parameterMenuItem_Click);
+            resources.ApplyResources(this.showPlanningMenuItem, "showPlanningMenuItem");
+            this.showPlanningMenuItem.Name = "showPlanningMenuItem";
+            this.showPlanningMenuItem.Click += new System.EventHandler(this.showPlanningToolStripMenuItem_Click);
             // 
             // toolTip
             // 
@@ -253,13 +287,17 @@ namespace Behaviac.Design
         private System.Windows.Forms.ToolStripButton expandButton;
         private System.Windows.Forms.ToolStripButton collapseButton;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
-        private System.Windows.Forms.ToolStripMenuItem parameterMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showPropMenuItem;
         private System.Windows.Forms.ToolStripMenuItem debugMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripLabel debugLabel;
-        private System.Windows.Forms.ToolStripMenuItem parMenuItem;
         private System.Windows.Forms.ToolStripButton cancelButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripSeparator separator;
         private System.Windows.Forms.ToolTip toolTip;
+        private System.Windows.Forms.ToolStripButton showSelectedNodeButton;
+        private System.Windows.Forms.ToolStripButton settingButton;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem showPlanningMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem documentMenuItem;
     }
 }

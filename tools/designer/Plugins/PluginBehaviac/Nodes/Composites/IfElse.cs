@@ -20,7 +20,7 @@ using PluginBehaviac.Properties;
 
 namespace PluginBehaviac.Nodes
 {
-    [NodeDesc("Composites:Sequences", "task_icon")]
+    [NodeDesc("Composites:Sequences", "query_icon")]
     public class IfElse : Behaviac.Design.Nodes.Node
 	{
         private ConnectorSingle _condition;
@@ -34,6 +34,11 @@ namespace PluginBehaviac.Nodes
             _if = new ConnectorSingle(_children, Resources.IfElseIf, "_if");
             _else = new ConnectorSingle(_children, Resources.IfElseElse, "_else");
 		}
+
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/ifelse/"; }
+        }
 
         public override string ExportClass
         {

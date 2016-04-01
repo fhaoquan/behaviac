@@ -11,8 +11,6 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace behaviac
@@ -21,7 +19,8 @@ namespace behaviac
     {
         public WithPrecondition()
         {
-		}
+        }
+
         ~WithPrecondition()
         {
         }
@@ -45,16 +44,16 @@ namespace behaviac
         {
             WithPreconditionTask pTask = new WithPreconditionTask();
 
-
             return pTask;
         }
     }
 
-    class WithPreconditionTask : Sequence.SequenceTask
+    internal class WithPreconditionTask : Sequence.SequenceTask
     {
-        public WithPreconditionTask() : base()
+        public WithPreconditionTask()
+            : base()
         {
-		}
+        }
 
         protected override void addChild(BehaviorTask pBehavior)
         {
@@ -93,26 +92,39 @@ namespace behaviac
             Debug.Check(pParent is SelectorLoop.SelectorLoopTask);
         }
 
+        public BehaviorTask PreconditionNode
+        {
+            get
+            {
+                Debug.Check(this.m_children.Count == 2);
+
+                return (this.m_children)[0];
+            }
+        }
+
+        public BehaviorTask ActionNode
+        {
+            get
+            {
+                Debug.Check(this.m_children.Count == 2);
+
+                return (this.m_children)[1];
+            }
+        }
+
+        protected override EBTStatus update_current(Agent pAgent, EBTStatus childStatus)
+        {
+            return this.update(pAgent, childStatus);
+        }
+
         protected override EBTStatus update(Agent pAgent, EBTStatus childStatus)
         {
             BehaviorTask pParent = this.GetParent();
             Debug.Check(pParent is SelectorLoop.SelectorLoopTask);
 
+            Debug.Check(false);
+
             return EBTStatus.BT_RUNNING;
-        }
-
-        public BehaviorTask PreconditionNode()
-        {
-            Debug.Check(this.m_children.Count == 2);
-
-            return (this.m_children)[0];
-        }
-
-        public BehaviorTask Action()
-        {
-            Debug.Check(this.m_children.Count == 2);
-
-            return (this.m_children)[1];
         }
     }
 }

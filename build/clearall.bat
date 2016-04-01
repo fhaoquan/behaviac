@@ -1,6 +1,8 @@
 rd ..\intermediate\  /s/q
 rd ..\lib\  /s/q
 
-del ..\bin\*.* /q /A-R
+rd ..\bin\ /s/q
 
-pause
+rd .\cmake_binary\   /s/q
+
+rem pause

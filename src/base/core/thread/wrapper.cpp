@@ -17,83 +17,89 @@
 namespace behaviac
 {
 #if BEHAVIAC_COMPILER_MSVC
-	void ThreadInt::Init()
-	{
-		if (!m_inited)
-		{
-			m_inited = true;
-		}
-	}
+    void ThreadInt::Init()
+    {
+        if (!m_inited)
+        {
+            m_inited = true;
+        }
+    }
 
-	ThreadInt::ThreadInt()
-	{
-		//this is a globle, m_inited is 0 anyway
-		this->Init();
-	}
-
-	ThreadInt::~ThreadInt()
-	{
+    ThreadInt::ThreadInt()
+    {
 		m_inited = false;
-	}
 
-	//void ThreadInt::set(long v)
-	//{
-	//	behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
-	//	long* value = m_threadInt.find((long)threadId);
-	//	BEHAVIAC_ASSERT(value);
-	//	*value = v;
-	//}
+        //this is a globle, m_inited is 0 anyway
+        this->Init();
+    }
 
-	long ThreadInt::value() const
-	{
-		behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
-		long* v = m_threadInt.find((long)threadId);
-		if (v)
-		{
-			long ret = *v;
-			return ret;
-		}
+    ThreadInt::~ThreadInt()
+    {
+        m_inited = false;
+    }
 
-		return 0;
-	}
+    //void ThreadInt::set(long v)
+    //{
+    //	behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
+    //	long* value = m_threadInt.find((long)threadId);
+    //	BEHAVIAC_ASSERT(value);
+    //	*value = v;
+    //}
 
-	long ThreadInt::operator++()
-	{
-		this->Init();
+    long ThreadInt::value() const
+    {
+        behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
+        long* v = m_threadInt.find((long)threadId);
 
-		behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
-		long* value = m_threadInt.find((long)threadId);
+        if (v)
+        {
+            long ret = *v;
+            return ret;
+        }
 
-		if (value)
-		{
-			(*value)++;
-			//InterlockedIncrement(value);
-			return *value;
-		}
-		else
-		{
-			behaviac::ScopedLock lock(m_csMemory);
-			m_threadInt.add((long)threadId, 1);
-			return 1;
-		}
-	}
+        return 0;
+    }
 
-	void ThreadInt::operator--()
-	{
-		this->Init();
+    long ThreadInt::operator++()
+    {
+        this->Init();
 
-		behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
-		long* value = m_threadInt.find((long)threadId);
-		BEHAVIAC_ASSERT(value);
-		if (value)
-		{
-			(*value)--;
-		}
-		else
-		{
-			//behaviac::ScopedLock lock(m_csMemory);
-			BEHAVIAC_ASSERT(false);
-		}
-	}
+        behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
+        long* value = m_threadInt.find((long)threadId);
+
+        if (value)
+        {
+            (*value)++;
+            //InterlockedIncrement(value);
+            return *value;
+
+        }
+        else
+        {
+            behaviac::ScopedLock lock(m_csMemory);
+            m_threadInt.add((long)threadId, 1);
+            return 1;
+        }
+    }
+
+    void ThreadInt::operator--()
+    {
+        this->Init();
+
+        behaviac::THREAD_ID_TYPE threadId = behaviac::GetTID();
+        long* value = m_threadInt.find((long)threadId);
+        BEHAVIAC_ASSERT(value);
+
+        if (value)
+        {
+            (*value)--;
+
+        }
+        else
+        {
+            //behaviac::ScopedLock lock(m_csMemory);
+            BEHAVIAC_ASSERT(false);
+        }
+    }
 #endif
 }

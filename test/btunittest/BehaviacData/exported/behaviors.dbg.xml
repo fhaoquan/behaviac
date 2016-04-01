@@ -1,3 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--EXPORTED BY TOOL, DON'T MODIFY IT!-->
-<workspace name="BehaviacUnitTestCpp" path="..\BehaviacUnitTestCpp.workspace.xml" source="..\..\..\..\integration\unity\Assets\BehaviorTrees\BTWorkspace\behaviors" xmlmeta="..\xmlmeta" />
+<!--DON'T REMOVE IT AS IT IS USED FOR DEBUGGING!-->
+<workspace name="BehaviacUnitTestCpp" path="..\BehaviacUnitTestCpp.workspace.xml" source="..\..\..\..\integration\unity\Assets\behaviac\workspace\behaviors" xmlmeta="..\xmlmeta" />

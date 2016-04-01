@@ -17,203 +17,202 @@
 
 namespace behaviac
 {
-	SelectorLoop::SelectorLoop()// : m_preconditions(0), m_actions(0)
-	{}
+    SelectorLoop::SelectorLoop()// : m_preconditions(0), m_actions(0)
+    {}
 
-	SelectorLoop::~SelectorLoop()
-	{}
+    SelectorLoop::~SelectorLoop()
+    {}
 
-	void SelectorLoop::load(int version, const char* agentType, const properties_t& properties)
-	{
-		super::load(version, agentType, properties);
-	}
+    bool SelectorLoop::IsManagingChildrenAsSubTrees() const
+    {
+        return true;
+    }
 
-	bool SelectorLoop::IsValid(Agent* pAgent, BehaviorTask* pTask) const
-	{
-		if (!SelectorLoop::DynamicCast(pTask->GetNode()))
-		{
-			return false;
-		}
-	
-		return super::IsValid(pAgent, pTask);
-	}
+    void SelectorLoop::load(int version, const char* agentType, const properties_t& properties)
+    {
+        super::load(version, agentType, properties);
+    }
 
-	BehaviorTask* SelectorLoop::createTask() const
-	{
-		SelectorLoopTask* pTask = BEHAVIAC_NEW SelectorLoopTask();
-		
+    bool SelectorLoop::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+    {
+        if (!SelectorLoop::DynamicCast(pTask->GetNode()))
+        {
+            return false;
+        }
 
-		return pTask;
-	}
+        return super::IsValid(pAgent, pTask);
+    }
 
+    BehaviorTask* SelectorLoop::createTask() const
+    {
+        SelectorLoopTask* pTask = BEHAVIAC_NEW SelectorLoopTask();
 
-	SelectorLoopTask::SelectorLoopTask() : CompositeTask()
-	{
-	}
+        return pTask;
+    }
 
+    SelectorLoopTask::SelectorLoopTask() : CompositeTask()
+    {
+    }
 
-	void SelectorLoopTask::Init(const BehaviorNode* node)
-	{
-		super::Init(node);
-	}
+    void SelectorLoopTask::Init(const BehaviorNode* node)
+    {
+        super::Init(node);
+    }
 
+    void SelectorLoopTask::copyto(BehaviorTask* target) const
+    {
+        CompositeTask::copyto(target);
 
-	void SelectorLoopTask::copyto(BehaviorTask* target) const
-	{
-		CompositeTask::copyto(target);
+        BEHAVIAC_ASSERT(SelectorLoopTask::DynamicCast(target));
+        SelectorLoopTask* ttask = (SelectorLoopTask*)target;
 
-		BEHAVIAC_ASSERT(SelectorLoopTask::DynamicCast(target));
-		SelectorLoopTask* ttask = (SelectorLoopTask*)target;
+        ttask->m_activeChildIndex = this->m_activeChildIndex;
+    }
 
-		ttask->m_activeChildIndex = this->m_activeChildIndex;
-	}
+    void SelectorLoopTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
+    }
 
-
-	void SelectorLoopTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
-	}
-
-	void SelectorLoopTask::load(ISerializableNode* node)
-	{
-		super::load(node);
-	}
-
-
+    void SelectorLoopTask::load(ISerializableNode* node)
+    {
+        super::load(node);
+    }
 
     SelectorLoopTask::~SelectorLoopTask()
-	{
-	}
+    {
+    }
 
+    void SelectorLoopTask::addChild(BehaviorTask* pBehavior)
+    {
+        super::addChild(pBehavior);
 
-	void SelectorLoopTask::addChild(BehaviorTask* pBehavior)
-	{
-		super::addChild(pBehavior);
-
-		BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pBehavior));
-	}
-
+        BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pBehavior));
+    }
 
     bool SelectorLoopTask::onenter(Agent* pAgent)
     {
         BEHAVIAC_UNUSED_VAR(pAgent);
 
-		//reset the action child as it will be checked in the update
-		this->m_activeChildIndex = CompositeTask::InvalidChildIndex;
-		BEHAVIAC_ASSERT(this->m_activeChildIndex == CompositeTask::InvalidChildIndex);
+        //reset the action child as it will be checked in the update
+        this->m_activeChildIndex = CompositeTask::InvalidChildIndex;
+        BEHAVIAC_ASSERT(this->m_activeChildIndex == CompositeTask::InvalidChildIndex);
 
-		return super::onenter(pAgent);
+        return super::onenter(pAgent);
     }
 
     void SelectorLoopTask::onexit(Agent* pAgent, EBTStatus s)
     {
         BEHAVIAC_UNUSED_VAR(pAgent);
-		super::onexit(pAgent, s);
+        super::onexit(pAgent, s);
     }
 
-	EBTStatus SelectorLoopTask::update(Agent* pAgent, EBTStatus childStatus)
+	EBTStatus SelectorLoopTask::update_current(Agent* pAgent, EBTStatus childStatus)
+	{
+		EBTStatus s = this->update(pAgent, childStatus);
+
+		return s;
+	}
+
+    EBTStatus SelectorLoopTask::update(Agent* pAgent, EBTStatus childStatus)
     {
         BEHAVIAC_UNUSED_VAR(pAgent);
         BEHAVIAC_UNUSED_VAR(childStatus);
+        int idx = -1;
 
-		//checking the preconditions and take the first action tree
-		uint32_t index = (uint32_t)-1;
-        for (uint32_t i = 0; i < this->m_children.size(); ++i)
+        if (childStatus != BT_RUNNING)
         {
-			WithPreconditionTask* pSubTree = (WithPreconditionTask*)this->m_children[i];
-			BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pSubTree));
+            BEHAVIAC_ASSERT(this->m_activeChildIndex != CompositeTask::InvalidChildIndex);
 
-			BehaviorTask* pPrecondTree = pSubTree->PreconditionNode();
-
-			EBTStatus status = pPrecondTree->exec(pAgent);
-
-			if (status == BT_SUCCESS)
-			{
-				index = i;
-				break;
-			}
+            if (childStatus == BT_SUCCESS)
+            {
+                return BT_SUCCESS;
+            }
+            else if (childStatus == BT_FAILURE)
+            {
+                //the next for starts from (idx + 1), so that it starts from next one after this failed one
+                idx = this->m_activeChildIndex;
+            }
+            else
+            {
+                BEHAVIAC_ASSERT(false);
+            }
         }
 
-		//clean up the current ticking action tree
-		if (index != (uint32_t)-1)
-		{
-			if (this->m_activeChildIndex != CompositeTask::InvalidChildIndex)
-			{
-				WithPreconditionTask* pCurrentSubTree = (WithPreconditionTask*)this->m_children[this->m_activeChildIndex];
-				BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pCurrentSubTree));
-				BehaviorTask* pCurrentActionTree = pCurrentSubTree->Action();
+        //checking the preconditions and take the first action tree
+        uint32_t index = (uint32_t) - 1;
 
-				WithPreconditionTask* pSubTree = (WithPreconditionTask*)this->m_children[index];
-				BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pSubTree));
+        for (uint32_t i = (idx + 1); i < this->m_children.size(); ++i)
+        {
+            WithPreconditionTask* pSubTree = (WithPreconditionTask*)this->m_children[i];
+            BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pSubTree));
+			BehaviorTask* pre = pSubTree->PreconditionNode();
 
-				BehaviorTask* pActionTree = pSubTree->Action();
+			EBTStatus status = pre->exec(pAgent);
 
-				if (pCurrentActionTree != pActionTree)
-				{
-					pCurrentActionTree->abort(pAgent);
+            if (status == BT_SUCCESS)
+            {
+                index = i;
+                break;
+            }
+        }
 
-					pCurrentSubTree->abort(pAgent);
+        //clean up the current ticking action tree
+        if (index != (uint32_t) - 1)
+        {
+            if (this->m_activeChildIndex != CompositeTask::InvalidChildIndex &&
+                this->m_activeChildIndex != (int)index)
+            {
+                WithPreconditionTask* pCurrentSubTree = (WithPreconditionTask*)this->m_children[this->m_activeChildIndex];
+                BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pCurrentSubTree));
+				BehaviorTask* action = pCurrentSubTree->ActionNode();
+				BEHAVIAC_UNUSED_VAR(action);
+				pCurrentSubTree->abort(pAgent);
+            }
 
-					this->m_activeChildIndex = index;
-				}
-			}
+            for (uint32_t i = index; i < this->m_children.size(); ++i)
+            {
+                WithPreconditionTask* pSubTree = (WithPreconditionTask*)this->m_children[i];
+                BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pSubTree));
 
+                if (i > index)
+                {
+					BehaviorTask* pre = pSubTree->PreconditionNode();
+					EBTStatus status = pre->exec(pAgent);
 
-			for (uint32_t i = 0; i < this->m_children.size(); ++i)
-			{
-				WithPreconditionTask* pSubTree = (WithPreconditionTask*)this->m_children[i];
-				BEHAVIAC_ASSERT(WithPreconditionTask::DynamicCast(pSubTree));
+                    //to search for the first one whose precondition is success
+                    if (status != BT_SUCCESS)
+                    {
+                        continue;
+                    }
+                }
 
-				//dummy ticking so that the designer knows it is updating
-				EBTStatus statusDummy = pSubTree->exec(pAgent);
-				BEHAVIAC_ASSERT(statusDummy == BT_RUNNING);
-				BEHAVIAC_UNUSED_VAR(statusDummy);
+				BehaviorTask* action = pSubTree->ActionNode();
+				EBTStatus s = action->exec(pAgent);
 
-				//when i < index, the precondition is failure, so to continue
-				if (i < index)
-				{
-					continue;
-				}
+                if (s == BT_RUNNING)
+                {
+                    this->m_activeChildIndex = i;
+					pSubTree->m_status = BT_RUNNING;
+                }
+                else
+                {
+                    //pActionTree->reset(pAgent);
+					pSubTree->m_status = s;
 
-				if (i > index)
-				{
-					BehaviorTask* pPreconditionTree = pSubTree->PreconditionNode();
+                    if (s == BT_FAILURE)
+                    {
+                        //THE ACTION failed, to try the next one
+                        continue;
+                    }
+                }
 
-					EBTStatus status = pPreconditionTree->exec(pAgent);
+                BEHAVIAC_ASSERT(s == BT_RUNNING || s == BT_SUCCESS);
 
-					//to search for the first one whose precondition is success
-					if (status != BT_SUCCESS)
-					{
-						continue;
-					}
-				}
+                return s;
+            }
+        }
 
-				BehaviorTask* pActionTree = pSubTree->Action();
-
-				EBTStatus status = pActionTree->exec(pAgent);
-
-				if (status == BT_RUNNING)
-				{
-					this->m_activeChildIndex = index;
-				}
-				else
-				{
-					pActionTree->reset(pAgent);
-
-					if (status == BT_FAILURE || status == BT_INVALID)
-					{
-						//THE ACTION failed, to try the next one
-						continue;
-					}
-				}
-
-				BEHAVIAC_ASSERT(status == BT_RUNNING || status == BT_SUCCESS);
-
-				return status;
-			}
-		}
-
-		return BT_FAILURE;
+        return BT_FAILURE;
     }
-
 }

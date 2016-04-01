@@ -17,21 +17,25 @@ using System.Text;
 using Behaviac.Design.Nodes;
 using Behaviac.Design.Attributes;
 
-namespace Behaviac.Design.NodeUI
+namespace Behaviac.Design.ObjectUI
 {
-    class BehaviorUIPolicy : NodeUIPolicy
+    class BehaviorUIPolicy : ObjectUIPolicy
     {
-        public override void Update()
+        public override bool ShouldAddProperty(DesignerPropertyInfo property)
         {
             if (_obj != null)
             {
-                DesignerPropertyEditor enterActionEditor = GetEditor(_obj, "EnterAction");
-                DesignerPropertyEditor exitActionEditor = GetEditor(_obj, "ExitAction");
-                Debug.Check(enterActionEditor != null && exitActionEditor != null);
+                if (Plugin.IsQueryFiltered)
+                {
+                    DesignerPropertyInfo domainsProp = DesignerProperty.GetDesignerProperty(_obj.GetType(), "Domains");
+                    DesignerPropertyInfo descriptorRefsProp = DesignerProperty.GetDesignerProperty(_obj.GetType(), "DescriptorRefs");
 
-                enterActionEditor.Enabled = false;
-                exitActionEditor.Enabled = false;
+                    return property.Property != domainsProp.Property &&
+                        property.Property != descriptorRefsProp.Property;
+                }
             }
+
+            return true;
         }
     }
 }

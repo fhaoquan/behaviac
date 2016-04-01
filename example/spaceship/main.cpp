@@ -22,16 +22,19 @@
 #include "./framework/Projectile.h"
 #include "./framework/WorldState.h"
 
-#include "behaviac/base/socket/socketconnect.h"
-#include "behaviac/base/logging/logging.h"
-
 #include "behaviac/base/core/profiler/profiler.h"
 
-#include "../example/spaceship/data/bt/exported/generated_behaviors.cpp"
+//only for cpp format
+#include "behaviac_generated/behaviors/generated_behaviors.h"
 
 #if BEHAVIAC_COMPILER_MSVC
 #include <windows.h>
+
+#if BEHAVIAC_COMPILER_MSVC2015
+extern "C" { FILE __iob_func[3] = { *stdin,*stdout,*stderr }; }
 #endif
+#endif
+
 
 struct level_t
 {
@@ -82,7 +85,7 @@ static const char* makeSyncBrain(framework::Projectile* s)
 
 void loadlevel(int level)
 {
-	framework::WorldState* state = (framework::WorldState*)behaviac::World::GetInstance(0);
+	framework::WorldState* state = (framework::WorldState*)behaviac::Agent::GetInstance<framework::WorldState>();
 
 	state->clearAIs();
 
@@ -297,8 +300,8 @@ public:
 	int SelectLevel()
 	{
 		int levels = BEHAVIAC_ARRAY_NELEMENT(gs_levels);
-		int level = -1;
-		while (level == -1)
+		int lev = -1;
+		while (lev == -1)
 		{
 			printf("select a level: \n");
 
@@ -307,8 +310,8 @@ public:
 			{
 				if (l >= 0 && l < levels)
 				{
-					level = l;
-					printf("level: %d %s\n", level, gs_levels[level].name);
+					lev = l;
+					printf("level: %d %s\n", lev, gs_levels[lev].name);
 					break;
 				}
 				else
@@ -318,7 +321,7 @@ public:
 			}
 		}
 
-		return level;
+		return lev;
 	}
 };
 
@@ -471,29 +474,28 @@ int main(int argc, char* argv[])
 		g_level = cl.SelectLevel();
 	}
 
-	behaviac::Start();
-
+	behaviac::Workspace::GetInstance()->SetFilePath("../example/spaceship/data/bt/exported");
+	behaviac::Workspace::GetInstance()->SetFileFormat(behaviac::Workspace::EFF_xml);
+	
 	//LogManager::GetInstance()->SetFlush(true);
 	behaviac::Agent::Register<framework::WorldState>();
 
-	behaviac::Agent::RegisterName<framework::WorldState>();
-	behaviac::Agent::CreateInstance<framework::WorldState>();
+	behaviac::Agent::RegisterInstanceName<framework::WorldState>();
+	framework::WorldState* pWorldState = behaviac::Agent::Create<framework::WorldState>();
 
-	behaviac::World::GetInstance(0)->SetIdFlag(kIdMask_Wolrd);
+	pWorldState->SetIdFlag(kIdMask_World);
 
 	behaviac::Agent::Register<framework::Ship>();
 	behaviac::Agent::Register<framework::Projectile>();
-
-	behaviac::Workspace::ExportMetas("../example/spaceship/data/ships.xml");
+	
+	behaviac::Workspace::GetInstance()->ExportMetas("../example/spaceship/data/ships.xml");
 
 	if (!cl.IsProfiling())
 	{
-		behaviac::Agent::SetIdMask(kIdMask_Wolrd | kIdMask_Opponent);
+		behaviac::Agent::SetIdMask(kIdMask_World | kIdMask_Opponent);
 	}
 
-	behaviac::Workspace::SetWorkspaceSettings("../example/spaceship/data/bt/exported", behaviac::Workspace::EFF_default);
-
-	behaviac::Socket::SetupConnection(cl.IsBlocking());
+	behaviac::Config::SetLogging(true);
 
 	printf("game starting...\n");
 
@@ -529,7 +531,7 @@ int main(int argc, char* argv[])
 		TTF_Quit();
 	}
 
-	framework::ws = (framework::WorldState*)behaviac::World::GetInstance(0);
+	framework::ws = behaviac::Agent::GetInstance<framework::WorldState>(0);
 
 	framework::renderer = BEHAVIAC_NEW framework::Renderer();
 	framework::renderer->sdlrenderer = sdlrenderer;
@@ -638,16 +640,13 @@ int main(int argc, char* argv[])
 	//SDL_DestroyWindow(window);
 	SDL_Quit();
 
-	behaviac::Socket::ShutdownConnection();
-
 	behaviac::Agent::UnRegister<framework::Projectile>();
 	behaviac::Agent::UnRegister<framework::Ship>();
 	behaviac::Agent::UnRegister<framework::WorldState>();
-	behaviac::Agent::DestroyInstance<framework::WorldState>();
+	behaviac::Agent::Destroy(pWorldState);
 
-	behaviac::Agent::UnRegisterName<framework::WorldState>();
+	behaviac::Agent::UnRegisterInstanceName<framework::WorldState>();
 
-	behaviac::Stop();
 
 	uint32_t allocatedSize1 = allocator.GetAllocatedSize();
 	int32_t allocDiff = allocatedSize1 - allocatedSize;

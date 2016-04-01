@@ -24,7 +24,8 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            ReferencedBehavior referencedBehavior = node as ReferencedBehavior;
+            return (referencedBehavior != null);
         }
 
         protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
@@ -32,12 +33,22 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateConstructor(node, stream, indent, className);
 
             ReferencedBehavior referencedBehavior = node as ReferencedBehavior;
-            Debug.Check(referencedBehavior != null);
+            if (referencedBehavior == null)
+                return;
 
             stream.WriteLine("{0}\t\t\tm_referencedBehaviorPath = \"{1}\";", indent, referencedBehavior.ReferenceFilename);
-            stream.WriteLine("{0}\t\t\tbool result = Workspace::Load(this->m_referencedBehaviorPath.c_str());", indent);
-            stream.WriteLine("{0}\t\t\tBEHAVIAC_UNUSED_VAR(result);", indent);
-            stream.WriteLine("{0}\t\t\tBEHAVIAC_ASSERT(result);", indent);
+            stream.WriteLine("{0}\t\t\tBehaviorTree* behaviorTree = Workspace::GetInstance()->LoadBehaviorTree(this->m_referencedBehaviorPath.c_str());", indent);
+            stream.WriteLine("{0}\t\t\tBEHAVIAC_ASSERT(behaviorTree);", indent);
+            stream.WriteLine("{0}\t\t\tif (behaviorTree)", indent);
+			stream.WriteLine("{0}\t\t\t{{", indent);
+			stream.WriteLine("{0}\t\t\t\tthis->m_bHasEvents |= behaviorTree->HasEvents();", indent);
+            stream.WriteLine("{0}\t\t\t}}", indent);
+
+            if (referencedBehavior.Task != null)
+            {
+                stream.WriteLine("{0}\t\t\tm_taskMethod = (CTaskMethod*)Action::LoadMethod(\"{1}\");", indent, referencedBehavior.Task.GetExportValue());
+                stream.WriteLine("{0}\t\t\tBEHAVIAC_ASSERT(m_taskMethod);", indent);
+            }
         }
     }
 }

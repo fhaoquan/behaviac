@@ -15,15 +15,30 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using Behaviac.Design;
 using Behaviac.Design.Attributes;
 
 namespace PluginBehaviac.DataExporters
 {
     public class DataCppExporter
     {
+        public static string GetExportNativeType(string typeName)
+        {
+            typeName = DataCsExporter.GetExportNativeType(typeName);
+
+            typeName = typeName.Replace("byte", "ubyte");
+
+            return typeName;
+        }
+
         public static string GetGeneratedNativeType(Type type)
         {
             string typeName = Plugin.GetNativeTypeName(type);
+
+            if (!typeName.EndsWith("*") && Plugin.IsRefType(type))
+            {
+                typeName += "*";
+            }
 
             return GetGeneratedNativeType(typeName);
         }
@@ -37,11 +52,17 @@ namespace PluginBehaviac.DataExporters
             else if (typeName.StartsWith("const vector<"))
                 typeName = typeName.Replace("const vector<", "const behaviac::vector<");
 
+            typeName = typeName.Replace("cszstring", "const char*");
+            typeName = typeName.Replace("szstring", "char*");
             typeName = typeName.Replace("sbyte", "signed char");
             typeName = typeName.Replace("ubyte", "unsigned char");
+            typeName = typeName.Replace("uchar", "unsigned char");
             typeName = typeName.Replace("ushort", "unsigned short");
             typeName = typeName.Replace("uint", "unsigned int");
+            typeName = typeName.Replace("llong", "long long");
+            typeName = typeName.Replace("ullong", "unsigned long long");
             typeName = typeName.Replace("ulong", "unsigned long");
+            typeName = typeName.Replace("const ", "");
 
             if (typeName.Contains("std::string"))
                 typeName = typeName.Replace("std::string", "behaviac::string");
@@ -61,6 +82,64 @@ namespace PluginBehaviac.DataExporters
             typeName = typeName.Trim();
 
             return typeName;
+        }
+
+        public static string GetGeneratedDefaultValue(Type type, string typename, string defaultValue = null)
+        {
+            if (type == typeof(void))
+                return null;
+
+            string value = (defaultValue == null) ? DesignerPropertyUtility.RetrieveExportValue(Plugin.DefaultValue(type)) : defaultValue;
+
+            if (type == typeof(char))
+            {
+                value = "(char)0";
+            }
+            else if (Plugin.IsStringType(type))
+            {
+                value = "\"" + value + "\"";
+            }
+            else if (Plugin.IsEnumType(type))
+            {
+                value = string.Format("{0}::{1}", typename, value);
+            }
+            else if (Plugin.IsArrayType(type))
+            {
+                value = null;
+            }
+            else if (Plugin.IsCustomClassType(type))
+            {
+                if (Plugin.IsRefType(type))
+                    value = "NULL";
+                else
+                    value = null;
+            }
+
+            return value;
+        }
+
+        public static string GetGeneratedPropertyDefaultValue(PropertyDef prop, string typename)
+        {
+            return (prop != null) ? GetGeneratedDefaultValue(prop.Type, typename, prop.DefaultValue) : null;
+        }
+
+        public static string GetPropertyBasicName(Behaviac.Design.PropertyDef property, MethodDef.Param arrayIndexElement)
+        {
+            string propName = property.BasicName;
+
+            if (property != null && property.IsArrayElement && arrayIndexElement != null)
+            {
+                propName = propName.Replace("[]", "");
+            }
+
+            return propName;
+        }
+
+        public static string GetPropertyNativeType(Behaviac.Design.PropertyDef property, MethodDef.Param arrayIndexElement)
+        {
+            string nativeType = DataCppExporter.GetGeneratedNativeType(property.NativeType);
+
+            return nativeType;
         }
 
         public static bool IsPtr(string typeName)
@@ -114,17 +193,17 @@ namespace PluginBehaviac.DataExporters
                 else if (obj is Behaviac.Design.ParInfo)
                 {
                     Behaviac.Design.ParInfo par = obj as Behaviac.Design.ParInfo;
-                    retStr = ParInfoCppExporter.GenerateCode(par, stream, indent, typename, var, caller);
+                    retStr = ParInfoCppExporter.GenerateCode(par, false, stream, indent, typename, var, caller);
                 }
                 else if (obj is Behaviac.Design.PropertyDef)
                 {
                     Behaviac.Design.PropertyDef property = obj as Behaviac.Design.PropertyDef;
-                    retStr = PropertyCppExporter.GenerateCode(property, stream, indent, typename, var, caller);
+                    retStr = PropertyCppExporter.GenerateCode(property, null, false, stream, indent, typename, var, caller);
                 }
                 else if (obj is Behaviac.Design.VariableDef)
                 {
                     Behaviac.Design.VariableDef variable = obj as Behaviac.Design.VariableDef;
-                    retStr = VariableCppExporter.GenerateCode(variable, stream, indent, typename, var, caller);
+                    retStr = VariableCppExporter.GenerateCode(variable, false, stream, indent, typename, var, caller);
                 }
                 else if (obj is Behaviac.Design.RightValueDef)
                 {
@@ -186,6 +265,10 @@ namespace PluginBehaviac.DataExporters
                         {
                             retStr = string.Format("(char*)({0})", retStr);
                         }
+                    }
+                    else if (Plugin.IsCharType(type)) // char
+                    {
+                        retStr = string.Format("'{0}'", retStr);
                     }
                     else if (Plugin.IsBooleanType(type)) // bool
                     {

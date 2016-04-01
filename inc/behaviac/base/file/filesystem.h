@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _CORE_FILESYSTEM_NATIVE_H_
-#define _CORE_FILESYSTEM_NATIVE_H_
+#ifndef BEHAVIAC_CORE_FILESYSTEM_NATIVE_H
+#define BEHAVIAC_CORE_FILESYSTEM_NATIVE_H
 
 #include "behaviac/base/base.h"
 #include "behaviac/base/string/stringutils.h"
@@ -46,134 +46,137 @@ typedef uint64_t FileTime;
 #   define WSTRING2STRING(x) behaviac::StringUtils::Wide2Char(x)
 #endif // BEHAVIAC_FILE_SYSTEM_UTF8
 
-class IFileSystemVisitor;
-class BEHAVIAC_API CFileSystem
+namespace behaviac
 {
-public:
-
-	static const uint32_t kMAX_PATH = 260; 
-    // global constants
-    static const uint32_t MAX_FILE_PATH_SIZE = (kMAX_PATH);
-    static const uint32_t MAX_FILE_SHORT_PATH_SIZE = (13); // 8.3
-
-	typedef void* Handle;
-
-    struct SFileInfo
-    {
-        FileTime    creationTime;
-        FileTime    lastAccessTime;
-        FileTime    lastWriteTime;
-        uint64_t    fileSize;
-
-        static const uint32_t ATTRIB_DIRECTORY = 0;
-        static const uint32_t ATTRIB_FILE = 1;
-
-        uint32_t   fileAttributes; // one of the two above const
-        char     fileName[ MAX_FILE_PATH_SIZE + 1 ]; // +1 for 0 terminating
-        char     alternFileName[ MAX_FILE_SHORT_PATH_SIZE + 1 ]; // +1 for 0 terminating
-    };
-
-	/// File open mode.
-	enum EOpenAccess
+	class IFileSystemVisitor;
+	class BEHAVIAC_API CFileSystem
 	{
-		EOpenAccess_Invalid = 0,
-		EOpenAccess_Read = 1,
-		EOpenAccess_Write = 2,
-		EOpenAccess_ReadWrite = 4, 
-		EOpenAccess_WriteAppend = 8
-	};
+	public:
 
-    enum ESeekMoveMode
-    {
-        ESeekMoveMode_Cur =         0,
-        ESeekMoveMode_End =			1,
-        ESeekMoveMode_Begin =	    2,
-        ESeekMoveMode_Set =	        3, // for SEEK_SET synonym
-        ESeekMoveMode_Force32Bits =	0xFFFFFFFF
-    };
+		static const uint32_t kMAX_PATH = 260;
+		// global constants
+		static const uint32_t MAX_FILE_PATH_SIZE = (kMAX_PATH);
+		static const uint32_t MAX_FILE_SHORT_PATH_SIZE = (13); // 8.3
 
-    static bool GetFileInfo(const char* inFileName, SFileInfo& fileInfo);
+		typedef void* Handle;
 
-    static bool GetFileInfo(Handle hFile, SFileInfo& fileInfo);
+		struct SFileInfo
+		{
+			FileTime    creationTime;
+			FileTime    lastAccessTime;
+			FileTime    lastWriteTime;
+			uint64_t    fileSize;
 
-    static Handle OpenCreateFile(const char* szFullPath, EOpenAccess openAccess);
+			static const uint32_t ATTRIB_DIRECTORY = 0;
+			static const uint32_t ATTRIB_FILE = 1;
 
-    static void closeFile(Handle file);
+			uint32_t   fileAttributes; // one of the two above const
+			char     fileName[MAX_FILE_PATH_SIZE + 1]; // +1 for 0 terminating
+			char     alternFileName[MAX_FILE_SHORT_PATH_SIZE + 1]; // +1 for 0 terminating
+		};
 
-    static bool readFile(Handle file,
-                         void* pBuffer,
-                         uint32_t nNumberOfBytesToRead,
-                         uint32_t* pNumberOfBytesRead);
+		/// File open mode.
+		enum EOpenAccess
+		{
+			EOpenAccess_Invalid = 0,
+			EOpenAccess_Read = 1,
+			EOpenAccess_Write = 2,
+			EOpenAccess_ReadWrite = 4,
+			EOpenAccess_WriteAppend = 8
+		};
 
-    static bool writeFile(Handle hFile,
-                          const void* pBuffer,
-                          uint32_t nNumberOfBytesToWrite,
-                          uint32_t* pNumberOfBytesWritten);
+		enum ESeekMoveMode
+		{
+			ESeekMoveMode_Cur = 0,
+			ESeekMoveMode_End = 1,
+			ESeekMoveMode_Begin = 2,
+			ESeekMoveMode_Set = 3, // for SEEK_SET synonym
+			ESeekMoveMode_Force32Bits = 0xFFFFFFFF
+		};
 
-    static bool copyFile(const char* existingFileName,
-                         const char* newFileName,
-                         bool failIfExists);
+		static bool GetFileInfo(const char* inFileName, SFileInfo& fileInfo);
 
-    static int64_t SetFilePointer(Handle file,
-                                  int64_t distanceToMove,
-                                  ESeekMoveMode moveMethod);
+		static bool GetFileInfo(Handle hFile, SFileInfo& fileInfo);
 
-    static bool SetEndOfFile(Handle file); // truncate the file to the current pointer
+		static Handle OpenCreateFile(const char* szFullPath, EOpenAccess openAccess);
 
-    static void FlushFile(Handle file);
+		static void closeFile(Handle file);
 
-    static bool FileExist(const char* szFullPath);
+		static bool readFile(Handle file,
+			void* pBuffer,
+			uint32_t nNumberOfBytesToRead,
+			uint32_t* pNumberOfBytesRead);
 
-    static uint64_t GetFileSize(Handle hFile);
+		static bool writeFile(Handle hFile,
+			const void* pBuffer,
+			uint32_t nNumberOfBytesToWrite,
+			uint32_t* pNumberOfBytesWritten);
 
-    static bool Delete(const char* szPath, bool bRecursive);
+		static bool copyFile(const char* existingFileName,
+			const char* newFileName,
+			bool failIfExists);
 
-    static bool Move(const char* srcFullPath, const char* destFullPath);
+		static int64_t SetFilePointer(Handle file,
+			int64_t distanceToMove,
+			ESeekMoveMode moveMethod);
 
-    static bool removeDirectory(const char* directoryPath);   // remove a directory and everything under it. Path must not include a final '\'
-    static void MakeSureDirectoryExist(const char* filename); // make dirs in order to be able to save the file
+		static bool SetEndOfFile(Handle file); // truncate the file to the current pointer
 
-    static void findFiles(const char* searchString,
-                          behaviac::vector<behaviac::string>& fileList,
-                          bool giveFiles,
-                          bool giveDirectories,
-                          bool recursive = false,
-                          int maximumSize = 0,
-                          bool keepCase = false);
+		static void FlushFile(Handle file);
 
-    static void Visit
-    (
-        IFileSystemVisitor&     visitor,
-        const char*             pathWithFilter,
-        bool                    visitFiles,
-        bool                    visitDirectories,
-        bool                    recursive
-    );
+		static bool FileExist(const char* szFullPath);
 
-    static void HandleDamageDisk(const char* szFilename);
+		static uint64_t GetFileSize(Handle hFile);
 
-    // convert the "\" path separator to a platform specific one, and be sure to be lowercase
-    static void ConvertPath(const char* szFilePathToConvert, char* szFilePathOut);
+		static bool Delete(const char* szPath, bool bRecursive);
 
-    static bool getFileAttributes(const char* szFilename, uint32_t& fileAttributes);
-    static bool setFileAttributes(const char* szFilename, uint32_t fileAttributes);
+		static bool Move(const char* srcFullPath, const char* destFullPath);
 
-    static bool isFullPath(const char* szFilename);
+		static bool removeDirectory(const char* directoryPath);   // remove a directory and everything under it. Path must not include a final '\'
+		static void MakeSureDirectoryExist(const char* filename); // make dirs in order to be able to save the file
 
-    static bool IsFileSystemInUTF8()
-    {
+		static void findFiles(const char* searchString,
+			behaviac::vector<behaviac::string>& fileList,
+			bool giveFiles,
+			bool giveDirectories,
+			bool recursive = false,
+			int maximumSize = 0,
+			bool keepCase = false);
+
+		static void Visit
+			(
+			IFileSystemVisitor&     visitor,
+			const char*             pathWithFilter,
+			bool                    visitFiles,
+			bool                    visitDirectories,
+			bool                    recursive
+			);
+
+		static void HandleDamageDisk(const char* szFilename);
+
+		// convert the "\" path separator to a platform specific one, and be sure to be lowercase
+		static void ConvertPath(const char* szFilePathToConvert, char* szFilePathOut);
+
+		static bool getFileAttributes(const char* szFilename, uint32_t& fileAttributes);
+		static bool setFileAttributes(const char* szFilename, uint32_t fileAttributes);
+
+		static bool isFullPath(const char* szFilename);
+
+		static bool IsFileSystemInUTF8()
+		{
 #ifdef BEHAVIAC_FILE_SYSTEM_UTF8
-        return true;
+			return true;
 #else
-        return false;
+			return false;
 #endif
-    }
+		}
 
-    static void ReadError(Handle);
+		static void ReadError(Handle);
 
-    static bool StartMonitoringDirectory(const wchar_t* dir);
-    static void StopMonitoringDirectory();
-    static void GetModifiedFiles(behaviac::vector<behaviac::wstring>& modifiedFiles);
-};
+		static bool StartMonitoringDirectory(const wchar_t* dir);
+		static void StopMonitoringDirectory();
+		static void GetModifiedFiles(behaviac::vector<behaviac::string>& modifiedFiles);
+	};
+}
 
-#endif // #ifndef _CORE_FILESYSTEM_NATIVE_H_
+#endif // #ifndef BEHAVIAC_CORE_FILESYSTEM_NATIVE_H

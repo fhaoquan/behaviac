@@ -25,7 +25,8 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
+            return (condition != null);
         }
 
         protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
@@ -33,7 +34,8 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateConstructor(node, stream, indent, className);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             if (condition.Opl != null)
             {
@@ -42,7 +44,7 @@ namespace PluginBehaviac.NodeExporters
 
             if (condition.Opr != null)
             {
-                VariableCsExporter.GenerateClassConstructor(condition.Opr, stream, indent, "opr");
+                RightValueCsExporter.GenerateClassConstructor(condition.Opr, stream, indent, "opr");
             }
         }
 
@@ -51,7 +53,8 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMember(node, stream, indent);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             if (condition.Opl != null)
             {
@@ -60,7 +63,50 @@ namespace PluginBehaviac.NodeExporters
 
             if (condition.Opr != null)
             {
-                VariableCsExporter.GenerateClassMember(condition.Opr, stream, indent, "opr");
+                RightValueCsExporter.GenerateClassMember(condition.Opr, stream, indent, "opr");
+            }
+        }
+
+        public static void GenerateOperand(StreamWriter stream, string indent, RightValueDef operand, string operandName, string nodeName)
+        {
+            if (operand != null)
+            {
+                string typeName = DataCsExporter.GetGeneratedNativeType(operand.ValueType);
+                typeName = typeName.Replace("::", ".");
+
+                if (operand.IsMethod) // method
+                {
+                    RightValueCsExporter.GenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                    RightValueCsExporter.PostGenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                }
+                else
+                {
+                    VariableDef var = operand.Var;
+                    if (var != null)
+                    {
+                        if (var.IsProperty) // property
+                        {
+                            PropertyDef prop = var.Property;
+                            if (prop != null)
+                            {
+                                string property = PropertyCsExporter.GetProperty(prop, var.ArrayIndexElement, stream, indent, operandName, nodeName);
+                                string propName = prop.BasicName.Replace("[]", "");
+
+                                if (prop.IsArrayElement && var.ArrayIndexElement != null)
+                                {
+                                    ParameterCsExporter.GenerateCode(var.ArrayIndexElement, stream, indent, "int", operandName + "_index", nodeName + "_opl");
+                                    property = string.Format("({0})[{1}_index]", property, operandName);
+                                }
+
+                                stream.WriteLine("{0}{1} {2} = {3};", indent, typeName, operandName, property);
+                            }
+                        }
+                        else if (var.IsConst) // const
+                        {
+                            RightValueCsExporter.GenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                        }
+                    }
+                }
             }
         }
 
@@ -69,7 +115,8 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMethod(node, stream, indent);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             stream.WriteLine("{0}\t\tprotected override EBTStatus update_impl(behaviac.Agent pAgent, behaviac.EBTStatus childStatus)", indent);
             stream.WriteLine("{0}\t\t{{", indent);
@@ -77,14 +124,10 @@ namespace PluginBehaviac.NodeExporters
             string typeName = DataCsExporter.GetGeneratedNativeType(condition.Opl.ValueType);
 
             // opl
-            RightValueCsExporter.GenerateCode(condition.Opl, stream, indent + "\t\t\t", typeName, "opl", string.Empty);
-            if (condition.Opl.IsMethod)
-            {
-                RightValueCsExporter.PostGenerateCode(condition.Opl, stream, indent + "\t\t\t", typeName, "opl", string.Empty);
-            }
+            ConditionCsExporter.GenerateOperand(stream, indent + "\t\t\t", condition.Opl, "opl", "condition");
 
             // opr
-            VariableCsExporter.GenerateCode(condition.Opr, stream, indent + "\t\t\t", typeName, "opr", string.Empty);
+            ConditionCsExporter.GenerateOperand(stream, indent + "\t\t\t", condition.Opr, "opr", "condition");
 
             // Operator
             switch (condition.Operator)

@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H_
-#define _ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H_
+#ifndef BEHAVIAC_ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H
+#define BEHAVIAC_ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H
 
 #include "behaviac/base/object/typehandler.h"
 #include "behaviac/base/object/member.h"
@@ -90,7 +90,7 @@ public:
         //}
     }
 
-    void GetUiInfo(const XmlNodeRef& xmlNode, const ParentType* parent, const CPropertyList& propertyList, const CSerializationID& propertyID, UiGenericType* uiWrapper)
+    void GetUiInfo(const behaviac::XmlNodeRef& xmlNode, const ParentType* parent, const CPropertyList& propertyList, const CSerializationID& propertyID, UiGenericType* uiWrapper)
     {
         //Provider provider(const_cast<ParentType*>(parent), const_cast<ContainerType&>(container), EPersistenceType_UiInfo);
         //contained_type* element = provider.GetFirstElement();
@@ -108,7 +108,7 @@ public:
         //}
     }
 
-    void GetMethodsDescription(const XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container)
+    void GetMethodsDescription(const behaviac::XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container)
     {
         BEHAVIAC_LOGERROR("Not implemented");
     }
@@ -116,4 +116,4 @@ public:
 protected:
 };
 
-#endif // #ifndef _ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H_
+#endif // #ifndef BEHAVIAC_ENGINESERVICES_PROPERTYLISTTYPEHANDLER_H

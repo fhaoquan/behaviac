@@ -25,7 +25,8 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
+            return (condition != null);
         }
 
         protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
@@ -33,7 +34,8 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateConstructor(node, stream, indent, className);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             if (condition.Opl != null)
             {
@@ -42,7 +44,7 @@ namespace PluginBehaviac.NodeExporters
 
             if (condition.Opr != null)
             {
-                VariableCppExporter.GenerateClassConstructor(condition.Opr, stream, indent, "opr");
+                RightValueCppExporter.GenerateClassConstructor(condition.Opr, stream, indent, "opr");
             }
         }
 
@@ -51,7 +53,8 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMember(node, stream, indent);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             if (condition.Opl != null)
             {
@@ -60,7 +63,49 @@ namespace PluginBehaviac.NodeExporters
 
             if (condition.Opr != null)
             {
-                VariableCppExporter.GenerateClassMember(condition.Opr, stream, indent, "opr");
+                RightValueCppExporter.GenerateClassMember(condition.Opr, stream, indent, "opr");
+            }
+        }
+
+        public static void GenerateOperand(StreamWriter stream, string indent, RightValueDef operand, string operandName, string nodeName)
+        {
+            if (operand != null)
+            {
+                string typeName = DataCppExporter.GetGeneratedNativeType(operand.ValueType);
+
+                if (operand.IsMethod) // method
+                {
+                    RightValueCppExporter.GenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                    RightValueCppExporter.PostGenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                }
+                else
+                {
+                    VariableDef var = operand.Var;
+                    if (var != null)
+                    {
+                        if (var.IsProperty) // property
+                        {
+                            PropertyDef prop = var.Property;
+                            if (prop != null)
+                            {
+                                string property = PropertyCppExporter.GetProperty(prop, var.ArrayIndexElement, stream, indent, operandName, nodeName);
+                                string propName = prop.BasicName.Replace("[]", "");
+
+                                if (prop.IsArrayElement && var.ArrayIndexElement != null)
+                                {
+                                    ParameterCppExporter.GenerateCode(var.ArrayIndexElement, stream, indent, "int", operandName + "_index", nodeName + "_opl");
+                                    property = string.Format("({0})[{1}_index]", property, operandName);
+                                }
+
+                                stream.WriteLine("{0}{1}& {2} = {3};", indent, typeName, operandName, property);
+                            }
+                        }
+                        else if (var.IsConst) // const
+                        {
+                            RightValueCppExporter.GenerateCode(operand, stream, indent, typeName, operandName, string.Empty);
+                        }
+                    }
+                }
             }
         }
 
@@ -69,24 +114,19 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMethod(node, stream, indent);
 
             PluginBehaviac.Nodes.Condition condition = node as PluginBehaviac.Nodes.Condition;
-            Debug.Check(condition != null);
+            if (condition == null)
+                return;
 
             stream.WriteLine("{0}\t\tvirtual EBTStatus update_impl(Agent* pAgent, EBTStatus childStatus)", indent);
             stream.WriteLine("{0}\t\t{{", indent);
             stream.WriteLine("{0}\t\t\tBEHAVIAC_UNUSED_VAR(pAgent);", indent);
             stream.WriteLine("{0}\t\t\tBEHAVIAC_UNUSED_VAR(childStatus);", indent);
 
-            string typeName = DataCppExporter.GetGeneratedNativeType(condition.Opl.ValueType);
-
             // opl
-            RightValueCppExporter.GenerateCode(condition.Opl, stream, indent + "\t\t\t", typeName, "opl", string.Empty);
-            if (condition.Opl.IsMethod)
-            {
-                RightValueCppExporter.PostGenerateCode(condition.Opl, stream, indent + "\t\t\t", typeName, "opl", string.Empty);
-            }
+            ConditionCppExporter.GenerateOperand(stream, indent + "\t\t\t", condition.Opl, "opl", "condition");
 
             // opr
-            VariableCppExporter.GenerateCode(condition.Opr, stream, indent + "\t\t\t", typeName, "opr", string.Empty);
+            ConditionCppExporter.GenerateOperand(stream, indent + "\t\t\t", condition.Opr, "opr", "condition");
 
             // Operator
             switch (condition.Operator)

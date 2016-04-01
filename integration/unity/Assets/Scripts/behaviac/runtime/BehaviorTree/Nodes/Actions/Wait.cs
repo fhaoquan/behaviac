@@ -12,54 +12,72 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace behaviac
 {
     public class Wait : BehaviorNode
     {
-		protected bool m_ignoreTimeScale;
         protected Property m_time_var;
+        protected CMethodBase m_time_m;
 
         public Wait()
         {
-			this.m_ignoreTimeScale = false;
-			this.m_time_var = null;
+            this.m_time_var = null;
+            this.m_time_m = null;
         }
 
         ~Wait()
         {
             this.m_time_var = null;
+            this.m_time_m = null;
         }
 
         protected override void load(int version, string agentType, List<property_t> properties)
         {
             base.load(version, agentType, properties);
 
-            foreach (property_t p in properties)
+            for (int i = 0; i < properties.Count; ++i)
             {
-				if (p.name == "IgnoreTimeScale")
-				{
-					this.m_ignoreTimeScale = (p.value == "true");
-				}
-                else if (p.name == "Time")
+                property_t p = properties[i];
+                if (p.name == "Time")
                 {
-                    string typeName = null;
-                    string propertyName = null;
-                    this.m_time_var = Condition.LoadRight(p.value, propertyName, ref typeName);
+                    int pParenthesis = p.value.IndexOf('(');
+
+                    if (pParenthesis == -1)
+                    {
+                        string typeName = null;
+                        this.m_time_var = Condition.LoadRight(p.value, ref typeName);
+                    }
+                    else
+                    {
+                        //method
+                        this.m_time_m = Action.LoadMethod(p.value);
+                    }
                 }
             }
         }
 
-        protected virtual float GetTime(Agent pAgent)
+        protected virtual double GetTime(Agent pAgent)
         {
+            object timeObj = null;
+
             if (this.m_time_var != null)
             {
-                Debug.Check(this.m_time_var != null);
-				object timeObj = this.m_time_var.GetValue(pAgent);
-				return Convert.ToSingle(timeObj);
+                timeObj = this.m_time_var.GetValue(pAgent);
+            }
+            else
+            {
+                Debug.Check(this.m_time_m != null);
+                if (this.m_time_m != null)
+                {
+                    timeObj = this.m_time_m.Invoke(pAgent);
+                }
+            }
+
+            if (timeObj != null)
+            {
+                return Convert.ToDouble(timeObj);
             }
 
             return 0;
@@ -72,11 +90,10 @@ namespace behaviac
             return pTask;
         }
 
-
-        class WaitTask : LeafTask
+        private class WaitTask : LeafTask
         {
-			private float m_start;
-			private float m_time;
+            private double m_start;
+            private double m_time;
 
             public WaitTask()
             {
@@ -111,14 +128,7 @@ namespace behaviac
                 base.load(node);
             }
 
-			private bool GetIgnoreTimeScale()
-			{
-				Wait pWaitNode = this.GetNode() as Wait;
-				
-				return pWaitNode != null ? pWaitNode.m_ignoreTimeScale : false;
-			}
-
-			private float GetTime(Agent pAgent)
+            private double GetTime(Agent pAgent)
             {
                 Wait pWaitNode = this.GetNode() as Wait;
 
@@ -127,15 +137,7 @@ namespace behaviac
 
             protected override bool onenter(Agent pAgent)
             {
-				if (this.GetIgnoreTimeScale())
-				{
-					this.m_start = Time.realtimeSinceStartup * 1000.0f;
-				}
-				else
-				{
-					this.m_start = 0;
-				}
-
+                this.m_start = Workspace.Instance.TimeSinceStartup * 1000.0;
                 this.m_time = this.GetTime(pAgent);
 
                 return (this.m_time >= 0);
@@ -147,21 +149,12 @@ namespace behaviac
 
             protected override EBTStatus update(Agent pAgent, EBTStatus childStatus)
             {
-				if (this.GetIgnoreTimeScale())
-				{
-					if (Time.realtimeSinceStartup * 1000.0f - this.m_start >= this.m_time)
-					{
-						return EBTStatus.BT_SUCCESS;
-					}
-				}
-				else
-				{
-					this.m_start += Time.deltaTime * 1000.0f;
-					if (this.m_start >= this.m_time)
-					{
-						return EBTStatus.BT_SUCCESS;
-					}
-				}
+                Debug.Check(childStatus == EBTStatus.BT_RUNNING);
+
+                if (Workspace.Instance.TimeSinceStartup * 1000.0 - this.m_start >= this.m_time)
+                {
+                    return EBTStatus.BT_SUCCESS;
+                }
 
                 return EBTStatus.BT_RUNNING;
             }

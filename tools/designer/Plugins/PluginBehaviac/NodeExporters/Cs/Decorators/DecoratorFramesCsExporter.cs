@@ -26,7 +26,36 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            DecoratorFrames decoratorFrames = node as DecoratorFrames;
+            return (decoratorFrames != null);
+        }
+
+        protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
+        {
+            base.GenerateConstructor(node, stream, indent, className);
+
+            DecoratorFrames decoratorFrames = node as DecoratorFrames;
+            if (decoratorFrames == null)
+                return;
+
+            if (decoratorFrames.Frames != null)
+            {
+                RightValueCsExporter.GenerateClassConstructor(decoratorFrames.Frames, stream, indent, "Frames");
+            }
+        }
+
+        protected override void GenerateMember(Node node, StreamWriter stream, string indent)
+        {
+            base.GenerateMember(node, stream, indent);
+
+            DecoratorFrames decoratorFrames = node as DecoratorFrames;
+            if (decoratorFrames == null)
+                return;
+
+            if (decoratorFrames.Frames != null)
+            {
+                RightValueCsExporter.GenerateClassMember(decoratorFrames.Frames, stream, indent, "Frames");
+            }
         }
 
         protected override void GenerateMethod(Node node, StreamWriter stream, string indent)
@@ -34,14 +63,20 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMethod(node, stream, indent);
 
             DecoratorFrames decoratorFrames = node as DecoratorFrames;
-            Debug.Check(decoratorFrames != null);
+            if (decoratorFrames == null)
+                return;
 
-            if (decoratorFrames.Time != null)
+            if (decoratorFrames.Frames != null)
             {
                 stream.WriteLine("{0}\t\tprotected override int GetFrames(Agent pAgent)", indent);
                 stream.WriteLine("{0}\t\t{{", indent);
 
-                string retStr = VariableCsExporter.GenerateCode(decoratorFrames.Time, stream, indent + "\t\t\t", string.Empty, string.Empty, string.Empty);
+                string retStr = RightValueCsExporter.GenerateCode(decoratorFrames.Frames, stream, indent + "\t\t\t", string.Empty, string.Empty, "Frames");
+
+                if (!decoratorFrames.Frames.IsPublic && (decoratorFrames.Frames.IsMethod || decoratorFrames.Frames.Var != null && decoratorFrames.Frames.Var.IsProperty))
+                {
+                    retStr = string.Format("Convert.ToInt32({0})", retStr);
+                }
 
                 stream.WriteLine("{0}\t\t\treturn {1};", indent, retStr);
                 stream.WriteLine("{0}\t\t}}", indent);

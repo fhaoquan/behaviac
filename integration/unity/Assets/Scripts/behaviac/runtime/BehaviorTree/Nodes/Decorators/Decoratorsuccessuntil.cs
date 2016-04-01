@@ -11,8 +11,6 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace behaviac
@@ -21,7 +19,8 @@ namespace behaviac
     {
         public DecoratorSuccessUntil()
         {
-		}
+        }
+
         ~DecoratorSuccessUntil()
         {
         }
@@ -45,14 +44,14 @@ namespace behaviac
         {
             DecoratorSuccessUntilTask pTask = new DecoratorSuccessUntilTask();
 
-
             return pTask;
         }
 
         ///Returns EBTStatus.BT_SUCCESS for the specified number of iterations, then returns EBTStatus.BT_FAILURE after that
-        class DecoratorSuccessUntilTask : DecoratorCountTask
+        private class DecoratorSuccessUntilTask : DecoratorCountTask
         {
-            public DecoratorSuccessUntilTask() : base()
+            public DecoratorSuccessUntilTask()
+                : base()
             {
             }
 
@@ -65,9 +64,39 @@ namespace behaviac
             {
                 base.save(node);
             }
+
             public override void load(ISerializableNode node)
             {
                 base.load(node);
+            }
+
+
+            public override void onreset(Agent pAgent)
+            {
+                this.m_n = 0;
+            }
+
+            protected override bool onenter(Agent pAgent)
+            {
+                //base.onenter(pAgent);
+
+                if (this.m_n == 0)
+                {
+                    int count = this.GetCount(pAgent);
+
+                    if (count == 0)
+                    {
+                        return false;
+                    }
+
+                    this.m_n = count;
+                }
+                else
+                {
+                    Debug.Check(true);
+                }
+
+                return true;
             }
 
             protected override EBTStatus decorate(EBTStatus status)
@@ -92,11 +121,6 @@ namespace behaviac
                 Debug.Check(this.m_n == 0);
 
                 return EBTStatus.BT_FAILURE;
-            }
-
-            public override bool NeedRestart()
-            {
-                return true;
             }
         }
     }

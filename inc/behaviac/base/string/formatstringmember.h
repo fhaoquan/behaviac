@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _CORE_FORMATSTRINGMEMBER_H_
-#define _CORE_FORMATSTRINGMEMBER_H_
+#ifndef BEHAVIAC_CORE_FORMATSTRINGMEMBER_H
+#define BEHAVIAC_CORE_FORMATSTRINGMEMBER_H
 
 #include "behaviac/base/file/formatstring.h"
 
@@ -62,17 +62,5 @@ public:
 #undef DECLARE_TYPENAME
 };
 
-#define DECLARE_FORMATSTRINGMEMBER( cls, fct, name ) \
-    CFormatStringMember< cls, &cls::fct > name
 
-// non-null fake pointer removes warning on GCC
-#define FORMATSTRINGMEMBER_OFFSETOF(s,m) ( ( (size_t)&reinterpret_cast< const volatile char& >( reinterpret_cast< s* >( 16 )->m ) ) - 16 )
-
-#define IMPLEMENT_FORMATSTRINGMEMBER( cls, fct, name ) \
-    template< > \
-    inline cls& CFormatStringMember< cls, &cls::fct >::GetContainer() \
-    { \
-        return *reinterpret_cast< cls* >( reinterpret_cast< uint8_t* >( this ) - FORMATSTRINGMEMBER_OFFSETOF( cls, name ) ); \
-    }
-
-#endif // _CORE_FORMATSTRINGMEMBER_H_
+#endif // BEHAVIAC_CORE_FORMATSTRINGMEMBER_H

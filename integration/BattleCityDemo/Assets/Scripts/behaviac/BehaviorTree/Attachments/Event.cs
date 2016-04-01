@@ -11,7 +11,6 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System.Collections;
 using System.Collections.Generic;
 
 namespace behaviac
@@ -33,9 +32,10 @@ namespace behaviac
         {
             base.load(version, agentType, properties);
 
-            foreach (property_t p in properties)
+            for (int i = 0; i < properties.Count; ++i)
             {
-                if (p.name == "EventName")
+                property_t p = properties[i];
+                if (p.name == "Task")
                 {
                     //method
                     this.m_event = Action.LoadMethod(p.value);
@@ -73,6 +73,40 @@ namespace behaviac
             }
         }
 
+        public string GetEventName()
+        {
+            if (this.m_event != null)
+            {
+                return this.m_event.Name;
+            }
+
+            return null;
+        }
+
+        public bool TriggeredOnce()
+        {
+            return this.m_bTriggeredOnce;
+        }
+
+        public TriggerMode GetTriggerMode()
+        {
+            return this.m_triggerMode;
+        }
+
+        public void switchTo(Agent pAgent)
+        {
+            if (!string.IsNullOrEmpty(this.m_referencedBehaviorPath))
+            {
+                if (pAgent != null)
+                {
+                    TriggerMode tm = this.GetTriggerMode();
+
+                    pAgent.bteventtree(pAgent, this.m_referencedBehaviorPath, tm);
+                    pAgent.btexec();
+                }
+            }
+        }
+
         public override bool IsValid(Agent pAgent, BehaviorTask pTask)
         {
             if (!(pTask.GetNode() is Event))
@@ -85,9 +119,8 @@ namespace behaviac
 
         protected override BehaviorTask createTask()
         {
-            EventTask pTask = new EventTask();
-
-            return pTask;
+            Debug.Check(false);
+            return null;
         }
 
         protected CMethodBase m_event;
@@ -100,71 +133,5 @@ namespace behaviac
         protected bool m_bTriggeredOnce;
 
         // ============================================================================
-        public class EventTask : AttachmentTask
-        {
-            public EventTask() { }
-            ~EventTask() { }
-
-            public bool TriggeredOnce()
-            {
-                Event pEventNode = this.GetNode() as Event;
-                return pEventNode.m_bTriggeredOnce;
-            }
-            public TriggerMode GetTriggerMode()
-            {
-                Event pEventNode = this.GetNode() as Event;
-                return pEventNode.m_triggerMode;
-            }
-
-            public string GetEventName()
-            {
-                Event pEventNode = this.GetNode() as Event;
-                return pEventNode.m_event.Name;
-            }
-
-            public override void copyto(BehaviorTask target)
-            {
-                base.copyto(target);
-            }
-            public override void save(ISerializableNode node)
-            {
-                base.save(node);
-            }
-            public override void load(ISerializableNode node)
-            {
-                base.load(node);
-            }
-
-            protected override bool onenter(Agent pAgent)
-            {
-                return true;
-            }
-            protected override void onexit(Agent pAgent, EBTStatus s)
-            {
-            }
-
-            protected override EBTStatus update(Agent pAgent, EBTStatus childStatus)
-            {
-                EBTStatus result = EBTStatus.BT_SUCCESS;
-                Event pEventNode = this.GetNode() as Event;
-                if (!string.IsNullOrEmpty(pEventNode.m_referencedBehaviorPath))
-                {
-                    if (pAgent != null)
-                    {
-                        TriggerMode tm = this.GetTriggerMode();
-
-						pAgent.bteventtree(pEventNode.m_referencedBehaviorPath, tm);
-                        pAgent.btexec();
-                    }
-                }
-
-                return result;
-            }
-
-            public override bool NeedRestart()
-            {
-                return true;
-            }
-        }
     }
 }

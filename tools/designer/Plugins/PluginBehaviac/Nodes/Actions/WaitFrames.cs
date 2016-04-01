@@ -31,12 +31,17 @@ namespace PluginBehaviac.Nodes
             _exportName = "WaitFrames";
 		}
 
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/waitframes/"; }
+        }
+
         public override string ExportClass
         {
             get { return "WaitFrames"; }
         }
 
-        private RightValueDef _frames;
+        private RightValueDef _frames = new RightValueDef(new VariableDef((int)100));
         [DesignerRightValueEnum("Frames", "FramesDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 0, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributesMethod, MethodType.Getter, "", "", ValueTypes.Int)]
         public RightValueDef Frames
         {
@@ -69,18 +74,37 @@ namespace PluginBehaviac.Nodes
 
         public override void CheckForErrors(BehaviorNode rootBehavior, List<ErrorCheck> result)
         {
-            Type valueType = this._frames.ValueType;
+            Type valueType = (this._frames != null) ? this._frames.ValueType : null;
 
-            string typeName = Plugin.GetNativeTypeName(valueType.FullName);
-
-            if (Plugin.IsIntergerNumberType(typeName))
-            { }
+            if (valueType == null)
+            {
+                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Frames is not set!"));
+            }
             else
             {
-                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Frames should be an integer number type!"));
+                string typeName = Plugin.GetNativeTypeName(valueType.FullName);
+
+                if (!Plugin.IsIntergerNumberType(typeName))
+                {
+                    result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Frames should be an integer number type!"));
+                }
             }
 
             base.CheckForErrors(rootBehavior, result);
+        }
+
+        public override bool ResetMembers(bool check, AgentType agentType, bool clear, MethodDef method = null, PropertyDef property = null)
+        {
+            bool bReset = false;
+
+            if (this._frames != null)
+            {
+                bReset |= this._frames.ResetMembers(check, agentType, clear, method, property);
+            }
+
+            bReset |= base.ResetMembers(check, agentType, clear, method, property);
+
+            return bReset;
         }
 	}
 }

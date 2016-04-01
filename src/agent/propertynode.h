@@ -16,82 +16,86 @@
 
 #include "behaviac/base/serialization/serializablenode.h"
 #include "behaviac/agent/agent.h"
+#include "behaviac/base/object/member.h"
 
-class BEHAVIAC_API CPropertyNode : public ISerializableNode
+namespace behaviac
 {
-public:
-	CPropertyNode() : ISerializableNode(false, false), m_pAgent(0), m_bParseString(false)
-	{}
-
-	CPropertyNode(behaviac::Agent* pAgent, const char* tag, const char* valueStr = 0)
-		: ISerializableNode(false, false), m_pAgent(pAgent), m_tag(tag), m_value(valueStr), m_bParseString(valueStr != 0)
-	{}
-
-	~CPropertyNode();
-
-	CPropertyNode& operator=(const CPropertyNode&);
-
-	//////////////////////////////////////////////////////////////////////////
-	// ISerializableNode interface
-	virtual SerializableNodeRef clone() const;
-
-	virtual int32_t getChildCount() const;
-	virtual ISerializableNode* getChild(int32_t childIndex);
-	virtual const ISerializableNode* getChild(int32_t childIndex) const;
-
-	virtual ISerializableNode* findChild(const CSerializationID& childID);
-	virtual const ISerializableNode* findChild(const CSerializationID& childID) const;
-
-	virtual CPropertyNode* newChild(const CSerializationID& childID);
-
-	virtual void removeChild(ISerializableNode* child);
-
-	virtual bool isTag(const CSerializationID& tagID) const
+	class BEHAVIAC_API CPropertyNode : public behaviac::ISerializableNode
 	{
-		BEHAVIAC_UNUSED_VAR(tagID);
+	public:
+		CPropertyNode() : behaviac::ISerializableNode(false, false), m_pAgent(0), m_bParseString(false)
+		{}
 
-		return false;
-	}
-	virtual CSerializationID getTag() const
-	{
-		return CSerializationID("");
-	}
+		CPropertyNode(behaviac::Agent* pAgent, const char* tag, const char* valueStr = 0)
+			: behaviac::ISerializableNode(false, false), m_pAgent(pAgent), m_tag(tag), m_value(valueStr), m_bParseString(valueStr != 0)
+		{}
 
-	virtual int32_t getAttributesCount() const;
+		~CPropertyNode();
 
-	virtual const char* getAttr(const CSerializationID& keyID) const
-	{
-        BEHAVIAC_UNUSED_VAR(keyID);
+		CPropertyNode& operator=(const CPropertyNode&);
 
-		return 0;
-	}
+		//////////////////////////////////////////////////////////////////////////
+		// behaviac::ISerializableNode interface
+		virtual behaviac::SerializableNodeRef clone() const;
 
-    virtual const char* getAttrRaw(const CSerializationID& keyID, int typeId = 0, int length = 0) const;
-    virtual void setAttrRaw(const CSerializationID& keyID, const char* valueData, int typeId = 0, int length = 0);
+		virtual int32_t getChildCount() const;
+		virtual behaviac::ISerializableNode* getChild(int32_t childIndex);
+		virtual const behaviac::ISerializableNode* getChild(int32_t childIndex) const;
 
-	virtual void addChild(const CSerializationID& keyID, const ISerializableNode* child);
+		virtual behaviac::ISerializableNode* findChild(const behaviac::CSerializationID& childID);
+		virtual const behaviac::ISerializableNode* findChild(const behaviac::CSerializationID& childID) const;
 
-	void addChild(XmlNodeRef xmlChild);
+		virtual CPropertyNode* newChild(const behaviac::CSerializationID& childID);
 
-	virtual bool SaveToFile(const char* fileName) const;
-	virtual bool LoadFromFile(const char* fileName);
+		virtual void removeChild(behaviac::ISerializableNode* child);
 
-	virtual bool SaveToFile(IFile* file) const;
-	virtual bool LoadFromFile(IFile* file);
+		virtual bool isTag(const behaviac::CSerializationID& tagID) const
+		{
+			BEHAVIAC_UNUSED_VAR(tagID);
 
-	virtual int32_t GetMemUsage() const;
+			return false;
+		}
+		virtual behaviac::CSerializationID getTag() const
+		{
+			return behaviac::CSerializationID("");
+		}
 
-private:
-	void RebuildChildrenList();
+		virtual int32_t getAttributesCount() const;
 
-	typedef behaviac::list<CPropertyNode> ChildrenContainer;
-	ChildrenContainer m_children;
+		virtual const char* getAttr(const behaviac::CSerializationID& keyID) const
+		{
+			BEHAVIAC_UNUSED_VAR(keyID);
 
-	behaviac::Agent*		m_pAgent;
-	const behaviac::string		m_tag;
-	//const behaviac::string		m_value;
-	const char*				m_value;
-	const bool				m_bParseString;
-};
+			return 0;
+		}
+
+		virtual const char* getAttrRaw(const behaviac::CSerializationID& keyID, int typeId = 0, int length = 0) const;
+		virtual void setAttrRaw(const behaviac::CSerializationID& keyID, const char* valueData, int typeId = 0, int length = 0);
+
+		virtual void addChild(const behaviac::CSerializationID& keyID, const behaviac::ISerializableNode* child);
+
+		void addChild(behaviac::XmlNodeRef xmlChild);
+
+		virtual bool SaveToFile(const char* fileName) const;
+		virtual bool LoadFromFile(const char* fileName);
+
+		virtual bool SaveToFile(IFile* file) const;
+		virtual bool LoadFromFile(IFile* file);
+
+		virtual int32_t GetMemUsage() const;
+
+	private:
+		void RebuildChildrenList();
+
+		typedef behaviac::list<CPropertyNode> ChildrenContainer;
+		ChildrenContainer m_children;
+
+		behaviac::Agent*		m_pAgent;
+		const behaviac::string		m_tag;
+		//const behaviac::string		m_value;
+		const char*				m_value;
+		const bool				m_bParseString;
+	};
+}//namespace behaviac
 
 #endif //_BEHAVIAC_PROPERTYNODE_H_

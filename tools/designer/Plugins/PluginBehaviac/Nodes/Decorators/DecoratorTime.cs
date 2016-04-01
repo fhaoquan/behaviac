@@ -29,25 +29,21 @@ namespace PluginBehaviac.Nodes
 		{
 		}
 
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/decorator/#time"; }
+        }
+
         public override string ExportClass
         {
             get { return "DecoratorTime"; }
         }
 
-        protected VariableDef _time = new VariableDef((int)0);
-        [DesignerPropertyEnum("DecoratorTime", "DecoratorTimeDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 0, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributes, "", "")]
-        public VariableDef Time
+        protected RightValueDef _time = new RightValueDef(new VariableDef(1000.0f));
+        [DesignerRightValueEnum("DecoratorTime", "DecoratorTimeDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributesMethod, MethodType.Getter, "", "", ValueTypes.Float)]
+        public RightValueDef Time
         {
-            get
-            {
-                if ((_time == null) || (_time.IsConst && _time.Value == null))
-                {
-                    _time = new VariableDef((int)0);
-                }
-
-                return _time;
-            }
-
+            get { return _time; }
             set { this._time = value; }
         }
 
@@ -57,20 +53,22 @@ namespace PluginBehaviac.Nodes
 
             DecoratorTime dec = (DecoratorTime)newnode;
             if (_time != null)
-                dec._time = (VariableDef)_time.Clone();
+            {
+                dec._time = (RightValueDef)_time.Clone();
+            }
         }
 
         public override void CheckForErrors(BehaviorNode rootBehavior, List<ErrorCheck> result)
         {
-            Type valueType = this._time.GetValueType();
+            Type valueType = (this._time != null) ? this._time.ValueType : null;
 
-            string typeName = Plugin.GetNativeTypeName(valueType.FullName);
-
-            if (Plugin.IsIntergerNumberType(typeName))
-            { }
-            else
+            if (valueType == null)
             {
-                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Time should be an integer number type!"));
+                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Time is not set!"));
+            }
+            else if (!Plugin.IsIntergerType(valueType) && !Plugin.IsFloatType(valueType))
+            {
+                result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, "Time must be a float type!"));
             }
 
             base.CheckForErrors(rootBehavior, result);

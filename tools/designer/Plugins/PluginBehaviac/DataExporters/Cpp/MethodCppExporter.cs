@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using Behaviac.Design;
 using Behaviac.Design.Attributes;
 
 namespace PluginBehaviac.DataExporters
@@ -26,7 +27,7 @@ namespace PluginBehaviac.DataExporters
             for (int i = 0; i < method.Params.Count; ++i)
             {
                 // const value
-                if (!method.Params[i].IsProperty && !method.Params[i].IsPar)
+                if (!method.Params[i].IsProperty && !method.Params[i].IsLocalVar)
                 {
                     object obj = method.Params[i].Value;
                     if (obj != null)
@@ -44,7 +45,11 @@ namespace PluginBehaviac.DataExporters
                         }
                         else if (Plugin.IsCustomClassType(type))
                         {
-                            if (DesignerStruct.IsPureConstDatum(obj, method, method.Params[i].Name))
+                            if (Plugin.IsRefType(type))
+                            {
+                                stream.WriteLine("{0}\t\t\t{1} = NULL;", indent, param);
+                            }
+                            else if (DesignerStruct.IsPureConstDatum(obj, method, method.Params[i].Name))
                             {
                                 StructCppExporter.GenerateCode(obj, stream, indent + "\t\t\t", param, null, "");
                             }
@@ -65,16 +70,11 @@ namespace PluginBehaviac.DataExporters
             for (int i = 0; i < method.Params.Count; ++i)
             {
                 // const value
-                if (!method.Params[i].IsProperty && !method.Params[i].IsPar)
+                if (!method.Params[i].IsProperty && !method.Params[i].IsLocalVar)
                 {
                     string basicNativeType = DataCppExporter.GetBasicGeneratedNativeType(method.Params[i].NativeType);
-                    if (DataCppExporter.IsPtr(basicNativeType) && !DataCppExporter.IsAgentPtr((basicNativeType)))
-                    {
-                        basicNativeType = basicNativeType.Replace("*", "");
-                        basicNativeType = basicNativeType.Trim();
-                    }
-
                     string param = var + "_p" + i;
+
                     stream.WriteLine("{0}\t\t{1} {2};", indent, basicNativeType, param);
                 }
             }
@@ -88,55 +88,61 @@ namespace PluginBehaviac.DataExporters
             for (int i = 0; i < method.Params.Count; ++i)
             {
                 string nativeType = DataCppExporter.GetGeneratedNativeType(method.Params[i].NativeType);
-                bool isPointRefType = nativeType.EndsWith("*&");
                 string basicNativeType = DataCppExporter.GetBasicGeneratedNativeType(nativeType);
                 string param = (string.IsNullOrEmpty(var) ? caller : var) + "_p" + i;
 
-                string paramBasicType = basicNativeType;
-                if (!isPointRefType && DataCppExporter.IsPtr(paramBasicType))
-                {
-                    paramBasicType = paramBasicType.Replace("*", "");
-                    paramBasicType = paramBasicType.Trim();
-                }
-                allParamTypes += ", " + paramBasicType;
+                allParamTypes += ", " + nativeType;
 
-                if (method.Params[i].IsProperty) // property
+                if (method.Params[i].IsProperty || method.Params[i].IsLocalVar) // property
                 {
-                    param = ParameterCppExporter.GenerateCode(method.Params[i], stream, indent, basicNativeType, string.Empty, param);
-
-                    if (!isPointRefType && DataCppExporter.IsPtr(basicNativeType))
+                    VariableDef v = method.Params[i].Value as VariableDef;
+                    if (v != null && v.ArrayIndexElement != null)
                     {
-                        param = "*" + param;
-                    }
-                }
-                else
-                {
-                    if (method.Params[i].IsPar) // par
-                    {
-                        ParameterCppExporter.GenerateCode(method.Params[i], stream, indent, basicNativeType, param, caller);
-
-                        if (!isPointRefType && DataCppExporter.IsPtr(basicNativeType))
+                        PropertyDef prop = method.Params[i].Property;
+                        if (prop != null && prop.IsArrayElement)
                         {
-                            param = "*" + param;
+                            string property = PropertyCppExporter.GetProperty(prop, v.ArrayIndexElement, stream, indent, param, caller);
+                            string propName = prop.BasicName.Replace("[]", "");
+
+                            ParameterCppExporter.GenerateCode(v.ArrayIndexElement, stream, indent, "int", param + "_index", param + caller);
+                            param = string.Format("({0})[{1}_index]", property, param);
                         }
                     }
-                    else // const value
+                    else
                     {
-                        object obj = method.Params[i].Value;
-                        if (obj != null)
+                        if ((method.Params[i].Property != null && method.Params[i].Property.IsCustomized) || method.Params[i].IsLocalVar)
                         {
-                            Type type = obj.GetType();
-                            if (Plugin.IsCustomClassType(type) && !DesignerStruct.IsPureConstDatum(obj, method, method.Params[i].Name))
+                            ParameterCppExporter.GenerateCode(method.Params[i], stream, indent, basicNativeType, param, caller);
+                        }
+                        else
+                        {
+                            if (method.IsPublic)
                             {
-                                StructCppExporter.GenerateCode(obj, stream, indent, param, method, method.Params[i].Name);
+                                param = ParameterCppExporter.GenerateCode(method.Params[i], stream, indent, basicNativeType, "", param);
+                            }
+                            else
+                            {
+                                ParameterCppExporter.GenerateCode(method.Params[i], stream, indent, basicNativeType, param, caller);
                             }
                         }
-
-                        if (!isPointRefType && DataCppExporter.IsAgentPtr(basicNativeType))
+                    }
+                }
+                else // const value
+                {
+                    object obj = method.Params[i].Value;
+                    if (obj != null)
+                    {
+                        Type type = obj.GetType();
+                        if (Plugin.IsCustomClassType(type) && !DesignerStruct.IsPureConstDatum(obj, method, method.Params[i].Name))
                         {
-                            param = "*" + param;
+                            StructCppExporter.GenerateCode(obj, stream, indent, param, method, method.Params[i].Name);
                         }
                     }
+                }
+
+                if (basicNativeType == "System::Object")
+                {
+                    param = "*(System::Object*)&" + param;
                 }
 
                 if (i > 0)
@@ -150,13 +156,27 @@ namespace PluginBehaviac.DataExporters
             {
                 agentName = "pAgent_" + caller;
 
-                stream.WriteLine("{0}Agent* {1} = Agent::GetInstance(\"{2}\", pAgent->GetContextId());", indent, agentName, method.Owner);
+                stream.WriteLine("{0}Agent* {1} = Agent::GetInstance(pAgent, \"{2}\");", indent, agentName, method.Owner);
                 stream.WriteLine("{0}BEHAVIAC_ASSERT({1});", indent, agentName);
             }
 
-            //string retStr = string.Format("(({0}*){1})->{2}({3})", method.ClassName, agentName, method.Name, allParams);
             string nativeReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
-            string retStr = string.Format("(({0}*){1})->_Execute_Method_<{2}METHOD_TYPE_{3}, {4}{5} >({6})", method.ClassName, agentName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), nativeReturnType, allParamTypes, allParams);
+            if (method.NativeReturnType.StartsWith("const "))
+                nativeReturnType = "const " + nativeReturnType;
+
+            string retStr = "";
+
+            if (method.IsPublic)
+            {
+                if (method.IsStatic)
+                    retStr = string.Format("{0}::{1}({2})", method.ClassName, method.BasicName, allParams);
+                else
+                    retStr = string.Format("(({0}*){1})->{2}({3})", method.ClassName, agentName, method.BasicName, allParams);
+            }
+            else
+            {
+                retStr = string.Format("(({0}*){1})->_Execute_Method_<{2}METHOD_TYPE_{3}, {4}{5} >({6})", method.ClassName, agentName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), nativeReturnType, allParamTypes, allParams);
+            }
 
             if (!string.IsNullOrEmpty(var))
             {

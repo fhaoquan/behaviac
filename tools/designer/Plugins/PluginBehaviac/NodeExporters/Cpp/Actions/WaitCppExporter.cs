@@ -27,7 +27,8 @@ namespace PluginBehaviac.NodeExporters
     {
         protected override bool ShouldGenerateClass(Node node)
         {
-            return true;
+            Wait wait = node as Wait;
+            return (wait != null);
         }
 
         protected override void GenerateConstructor(Node node, StreamWriter stream, string indent, string className)
@@ -35,9 +36,27 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateConstructor(node, stream, indent, className);
 
             Wait wait = node as Wait;
-            Debug.Check(wait != null);
+            if (wait == null)
+                return;
 
-            stream.WriteLine("{0}\t\t\tm_ignoreTimeScale = {1};", indent, wait.IgnoreTimeScale ? "true" : "false");
+            if (wait.Time != null)
+            {
+                RightValueCppExporter.GenerateClassConstructor(wait.Time, stream, indent, "Time");
+            }
+        }
+
+        protected override void GenerateMember(Node node, StreamWriter stream, string indent)
+        {
+            base.GenerateMember(node, stream, indent);
+
+            Wait wait = node as Wait;
+            if (wait == null)
+                return;
+
+            if (wait.Time != null)
+            {
+                RightValueCppExporter.GenerateClassMember(wait.Time, stream, indent, "Time");
+            }
         }
 
         protected override void GenerateMethod(Node node, StreamWriter stream, string indent)
@@ -45,15 +64,16 @@ namespace PluginBehaviac.NodeExporters
             base.GenerateMethod(node, stream, indent);
 
             Wait wait = node as Wait;
-            Debug.Check(wait != null);
+            if (wait == null)
+                return;
 
             if (wait.Time != null)
             {
-                stream.WriteLine("{0}\t\tvirtual float GetTime(Agent* pAgent) const", indent);
+                stream.WriteLine("{0}\t\tvirtual double GetTime(Agent* pAgent) const", indent);
                 stream.WriteLine("{0}\t\t{{", indent);
                 stream.WriteLine("{0}\t\t\tBEHAVIAC_UNUSED_VAR(pAgent);", indent);
 
-                string retStr = VariableCppExporter.GenerateCode(wait.Time, stream, indent + "\t\t\t", string.Empty, string.Empty, string.Empty);
+                string retStr = RightValueCppExporter.GenerateCode(wait.Time, stream, indent + "\t\t\t", string.Empty, string.Empty, "Time");
 
                 stream.WriteLine("{0}\t\t\treturn {1};", indent, retStr);
                 stream.WriteLine("{0}\t\t}}", indent);

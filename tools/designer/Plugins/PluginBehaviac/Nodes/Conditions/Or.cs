@@ -1,4 +1,4 @@
-﻿/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tencent is pleased to support the open source community by making behaviac available.
 //
 // Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
@@ -31,6 +31,11 @@ namespace PluginBehaviac.Nodes
 		{
             _conditions = new ConnectorCondition(_children, "Condition {0}", "Conditions", 2, int.MaxValue);
 		}
+
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/or/"; }
+        }
 
         public override string ExportClass
         {

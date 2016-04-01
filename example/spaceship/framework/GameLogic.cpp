@@ -22,6 +22,7 @@ namespace framework
 {
 	GameLogic::GameLogic()
 	{
+		behaviac::Workspace::GetInstance()->SetTimeSinceStartup(0);
 	}
 
 	bool GameLogic::step()
@@ -34,8 +35,10 @@ namespace framework
 		const GameObjectList* objects = ws->getAllGameObjects();
 
 		float dt = ws->timeElapsed / 1000.0f;
-		behaviac::Workspace::SetDeltaFrameTime(dt);
-		ws->btexec();
+
+		behaviac::Workspace::GetInstance()->SetTimeSinceStartup(behaviac::Workspace::GetInstance()->GetTimeSinceStartup() + dt);
+
+		behaviac::Workspace::GetInstance()->Update();
 
 		for (ConstGameObjectIter itr = objects->begin(); itr != objects->end(); ++itr)
 		{

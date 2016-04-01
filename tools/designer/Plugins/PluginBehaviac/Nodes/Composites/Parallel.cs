@@ -69,13 +69,22 @@ namespace PluginBehaviac.Nodes
 		{
 		}
 
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/parallel/"; }
+        }
+
+        protected override void CreateInterruptChild()
+        {
+        }
+
         public override string ExportClass
         {
             get { return "Parallel"; }
         }
 
         protected FailurePolicy _failure_policy = FailurePolicy.FAIL_ON_ONE;
-        [DesignerEnum("FailurePolicy", "FailurePolicyDesc", "Parallel", DesignerProperty.DisplayMode.List, 0, DesignerProperty.DesignerFlags.NoFlags, "")]
+        [DesignerEnum("FailurePolicy", "FailurePolicyDesc", "Parallel", DesignerProperty.DisplayMode.NoDisplay, 0, DesignerProperty.DesignerFlags.NoFlags, "")]
         public FailurePolicy FailurePolicy
         {
             get { return _failure_policy; }
@@ -83,7 +92,7 @@ namespace PluginBehaviac.Nodes
         }
 
         protected SuccessPolicy _success_policy = SuccessPolicy.SUCCEED_ON_ALL;
-        [DesignerEnum("SuccessPolicy", "SuccessPolicyDesc", "Parallel", DesignerProperty.DisplayMode.List, 1, DesignerProperty.DesignerFlags.NoFlags, "")]
+        [DesignerEnum("SuccessPolicy", "SuccessPolicyDesc", "Parallel", DesignerProperty.DisplayMode.NoDisplay, 1, DesignerProperty.DesignerFlags.NoFlags, "")]
         public SuccessPolicy SuccessPolicy
         {
             get { return _success_policy; }
@@ -91,7 +100,7 @@ namespace PluginBehaviac.Nodes
         }
 
         protected ExitPolicy _exit_policy = ExitPolicy.EXIT_ABORT_RUNNINGSIBLINGS;
-        [DesignerEnum("ExitPolicy", "ExitPolicyDesc", "Parallel", DesignerProperty.DisplayMode.List, 2, DesignerProperty.DesignerFlags.NoFlags, "")]
+        [DesignerEnum("ExitPolicy", "ExitPolicyDesc", "Parallel", DesignerProperty.DisplayMode.NoDisplay, 2, DesignerProperty.DesignerFlags.NoFlags, "")]
         public ExitPolicy ExitPolicy
         {
             get { return _exit_policy; }
@@ -99,11 +108,16 @@ namespace PluginBehaviac.Nodes
         }
 
         protected ChildFinishPolicy _childfinishpolicy = ChildFinishPolicy.CHILDFINISH_LOOP;
-        [DesignerEnum("ChildFinishPolicy", "ChildFinishPolicyDesc", "Parallel", DesignerProperty.DisplayMode.List, 2, DesignerProperty.DesignerFlags.NoFlags, "")]
+        [DesignerEnum("ChildFinishPolicy", "ChildFinishPolicyDesc", "Parallel", DesignerProperty.DisplayMode.NoDisplay, 2, DesignerProperty.DesignerFlags.NoFlags, "")]
         public ChildFinishPolicy ChildFinishPolicy
         {
             get { return _childfinishpolicy; }
             set { _childfinishpolicy = value; }
+        }
+
+        public override Behaviac.Design.ObjectUI.ObjectUIPolicy CreateUIPolicy()
+        {
+            return new Behaviac.Design.ObjectUI.ParallelUIPolicy();
         }
 
         protected override void CloneProperties(Node newnode)

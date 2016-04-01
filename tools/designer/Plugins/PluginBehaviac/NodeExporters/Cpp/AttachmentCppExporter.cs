@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Reflection;
 using Behaviac.Design.Attachments;
 
 namespace PluginBehaviac.NodeExporters
@@ -25,33 +26,66 @@ namespace PluginBehaviac.NodeExporters
         {
             if (attachment != null)
             {
-                string attachmentExporter = "PluginBehaviac.NodeExporters." + attachment.ExportClass + "CppExporter";
-                Type exporterType = Type.GetType(attachmentExporter);
+                Type exporterType = getExporterType(attachment.GetType());
                 if (exporterType != null)
-                {
                     return (AttachmentCppExporter)Activator.CreateInstance(exporterType);
-                }
             }
 
             return new AttachmentCppExporter();
         }
 
-        public void GenerateClass(Attachment attachment, StreamWriter stream, string indent, string nodeName, string btClassName)
+        private static Type getExporterType(Type attachmentType)
+        {
+            if (attachmentType != null)
+            {
+                while (attachmentType != typeof(Attachment))
+                {
+                    string attachmentExporter = "PluginBehaviac.NodeExporters." + attachmentType.Name + "CppExporter";
+                    Type exporterType = Type.GetType(attachmentExporter);
+                    if (exporterType != null)
+                        return exporterType;
+
+                    foreach (Assembly assembly in Plugin.GetLoadedPlugins())
+                    {
+                        string filename = Path.GetFileNameWithoutExtension(assembly.Location);
+                        attachmentExporter = filename + ".NodeExporters." + attachmentType.Name + "CppExporter";
+                        exporterType = assembly.GetType(attachmentExporter);
+                        if (exporterType != null)
+                            return exporterType;
+                    }
+
+                    attachmentType = attachmentType.BaseType;
+                }
+            }
+
+            return null;
+        }
+
+        public override void GenerateClass(Attachment attachment, StreamWriter stream, string indent, string nodeName, string btClassName)
         {
             if (ShouldGenerateClass())
             {
                 string className = GetGeneratedClassName(attachment, btClassName, nodeName);
 
-                stream.WriteLine("{0}\tclass BEHAVIAC_API {1} : public {2}\r\n{0}\t{{", indent, className, attachment.ExportClass);
+                stream.WriteLine("{0}\tclass {1} : public {2}\r\n{0}\t{{", indent, className, attachment.ExportClass);
                 stream.WriteLine("{0}\tpublic:\r\n{0}\t\tBEHAVIAC_DECLARE_DYNAMIC_TYPE({1}, {2});", indent, className, attachment.ExportClass);
 
+                stream.WriteLine("{0}\t\t{1}()", indent, className);
+                stream.WriteLine("{0}\t\t{{", indent);
+
+                GenerateConstructor(attachment, stream, indent, className);
+
+                stream.WriteLine("{0}\t\t}}", indent);
+
                 GenerateMethod(attachment, stream, indent);
+
+                GenerateMember(attachment, stream, indent);
 
                 stream.WriteLine("{0}\t}};\r\n", indent);
             }
         }
 
-        public virtual void GenerateInstance(Attachment attachment, StreamWriter stream, string indent, string nodeName, string agentType, string btClassName)
+        public override void GenerateInstance(Attachment attachment, StreamWriter stream, string indent, string nodeName, string agentType, string btClassName)
         {
             string className = GetGeneratedClassName(attachment, btClassName, nodeName);
 
@@ -61,7 +95,7 @@ namespace PluginBehaviac.NodeExporters
             // set its basic properties
             stream.WriteLine("{0}\t{1}->SetClassNameString(\"{2}\");", indent, nodeName, attachment.ExportClass);
             stream.WriteLine("{0}\t{1}->SetId({2});", indent, nodeName, attachment.Id);
-            stream.WriteLine("#if !defined(BEHAVIAC_RELEASE)");
+            stream.WriteLine("#if !BEHAVIAC_RELEASE");
             stream.WriteLine("{0}\t{1}->SetAgentType(\"{2}\");", indent, nodeName, agentType);
             stream.WriteLine("#endif");
         }
@@ -79,6 +113,14 @@ namespace PluginBehaviac.NodeExporters
         protected virtual bool ShouldGenerateClass()
         {
             return false;
+        }
+
+        protected virtual void GenerateConstructor(Attachment attachment, StreamWriter stream, string indent, string className)
+        {
+        }
+
+        protected virtual void GenerateMember(Attachment attachment, StreamWriter stream, string indent)
+        {
         }
 
         protected virtual void GenerateMethod(Attachment attachment, StreamWriter stream, string indent)

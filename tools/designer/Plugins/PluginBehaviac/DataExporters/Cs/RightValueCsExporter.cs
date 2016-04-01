@@ -55,7 +55,7 @@ namespace PluginBehaviac.DataExporters
             }
             else
             {
-                retStr = VariableCsExporter.GenerateCode(rightValue.Var, stream, indent, typename, var, caller);
+                retStr = VariableCsExporter.GenerateCode(rightValue.Var, false, stream, indent, typename, var, caller);
             }
 
             return retStr;
@@ -66,7 +66,7 @@ namespace PluginBehaviac.DataExporters
             if (rightValue.IsMethod)
             {
                 string className = rightValue.Method.ClassName.Replace("::", ".");
-                MethodCsExporter.PostGenerateCode(rightValue.Method, stream, indent, rightValue.Method.NativeReturnType, var, string.Format("(({0}*)pAgent_{1})", className, var));
+                MethodCsExporter.PostGenerateCode(rightValue.Method, stream, indent, rightValue.Method.NativeReturnType, var, string.Format("(({0})pAgent_{1})", className, var));
             }
             else
             {

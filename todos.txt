@@ -1,3 +1,4 @@
-HTN
+to access http://bbs.behaviac.com/index.php/101/todos for more informations about
+the development plan, features requests, etc.
 
-FSM
+

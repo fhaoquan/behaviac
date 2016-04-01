@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ENGINESERVICES_CONTAINERTYPEHANDLER_H_
-#define _ENGINESERVICES_CONTAINERTYPEHANDLER_H_
+#ifndef BEHAVIAC_ENGINESERVICES_CONTAINERTYPEHANDLER_H
+#define BEHAVIAC_ENGINESERVICES_CONTAINERTYPEHANDLER_H
 
 #include "behaviac/base/object/typehandler.h"
 #include "behaviac/base/object/member.h"
@@ -22,7 +22,6 @@
 
 // We generally want to take care of the children nodes creation
 #define DefaultContainedTypeHandler NoChildTypeHandler
-
 
 // Utility class to filter empty elements. The default implementation compares
 // the element to 0, but it can be specialized for other types.
@@ -51,35 +50,34 @@ public:
 };
 
 template <class TParentType, class TContainerType>
-class CEmptyPredicate<TParentType, TContainerType, CStringID>
+class CEmptyPredicate<TParentType, TContainerType, behaviac::CStringID>
 {
 public:
-    static bool IsEmpty(const CStringID& element)
+    static bool IsEmpty(const behaviac::CStringID& element)
     {
         return !element.IsValid();
     }
 };
 
 template <class TParentType, class TContainerType>
-class CEmptyPredicate<TParentType, TContainerType, CNoCaseStringID>
+class CEmptyPredicate<TParentType, TContainerType, behaviac::CNoCaseStringID>
 {
 public:
-    static bool IsEmpty(const CStringID& element)
+    static bool IsEmpty(const behaviac::CStringID& element)
     {
         return !element.IsValid();
     }
 };
 
 template <class TParentType, class TContainerType>
-class CEmptyPredicate<TParentType, TContainerType, CPathID>
+class CEmptyPredicate<TParentType, TContainerType, behaviac::CPathID>
 {
 public:
-    static bool IsEmpty(const CPathID& element)
+    static bool IsEmpty(const behaviac::CPathID& element)
     {
         return !element.IsValid();
     }
 };
-
 
 // Example provider class, very basic, uses the element index as its ID. Can be
 // used with any class that define ValueType and implements Size and operator[]
@@ -112,7 +110,6 @@ public:
     {
         m_container.push_back(element);
     }
-
 
     // These are used to simulate entries indexed by ID
     typedef uint32_t IDType;
@@ -205,7 +202,6 @@ protected:
     contained_type m_emptyElement;
 };
 
-
 // Specialize this to do nothing if your TContainerType does not support Reserve
 template <typename TContainerType>
 class CContainerReserver
@@ -232,7 +228,6 @@ public:
     static void Reserve(behaviac::list<Type, Alloc>&, uint32_t) {} // do nothing
 };
 
-
 /////////////////////////////////////////////////////////
 //////////     GENERIC CONTAINER HANDLER      ///////////
 /////////////////////////////////////////////////////////
@@ -252,23 +247,22 @@ public:
     typedef TContainedTypeHandler<contained_type> ContainedTypeHandler;
     typedef TContainerProvider Provider;
 
-
     GenericContainerHandler(const char* elementName, const char* valueName, const char* /*idName*/)
         : m_elementID(elementName), m_valueID(valueName)
     {}
 
-    void Load(const ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
+    void Load(const behaviac::ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
     {
         container.clear(); // Clear elements
         Provider provider(parent, container, EPersistenceType_Description_Load);
-        ConstSerializableNodeIt iter(node);
+        behaviac::ConstSerializableNodeIt iter(node);
 
         if (CContainerReserver<ContainerType>::CanReserve())
         {
             // Cheap way to count children...
             uint32_t numChildren = 0;
 
-            for (const ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
+            for (const behaviac::ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
             {
                 ++numChildren;
             }
@@ -276,7 +270,7 @@ public:
             CContainerReserver<ContainerType>::Reserve(container, numChildren);
         }
 
-        for (const ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
+        for (const behaviac::ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
         {
             contained_type tempObject;
             ContainedTypeHandler::Load(childNode, tempObject, className, m_valueID);
@@ -284,26 +278,26 @@ public:
         }
     }
 
-    void Save(ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
+    void Save(behaviac::ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
     {
         Provider provider(parent, container, EPersistenceType_Description_Save);
         contained_type* element = provider.GetFirstElement();
 
         while (element)
         {
-            ISerializableNode* childNode = node->newChild(m_elementID);
+            behaviac::ISerializableNode* childNode = node->newChild(m_elementID);
             ContainedTypeHandler::Save(childNode, *element, className, m_valueID);
             element = provider.GetNextElement();
         }
     }
 
-    void LoadState(const ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
+    void LoadState(const behaviac::ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
     {
         container.clear(); // Clear elements
         Provider provider(parent, container, EPersistenceType_State_Load);
-        ConstSerializableNodeIt iter(node);
+		behaviac::ConstSerializableNodeIt iter(node);
 
-        for (const ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
+        for (const behaviac::ISerializableNode* childNode = iter.first(m_elementID); childNode; childNode = iter.next(m_elementID))
         {
             contained_type tempObject;
             ContainedTypeHandler::LoadState(childNode, tempObject, className, m_valueID);
@@ -311,44 +305,57 @@ public:
         }
     }
 
-    void SaveState(ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
+    void SaveState(behaviac::ISerializableNode* node, ParentType* parent, ContainerType& container, const char* className)
     {
         Provider provider(parent, container, EPersistenceType_State_Save);
         contained_type* element = provider.GetFirstElement();
 
         while (element)
         {
-            ISerializableNode* childNode = node->newChild(m_elementID);
+            behaviac::ISerializableNode* childNode = node->newChild(m_elementID);
             ContainedTypeHandler::SaveState(childNode, *element, className, m_valueID);
             element = provider.GetNextElement();
         }
     }
 
-	void GetUiInfo(CTagTypeDescriptor::TypesMap_t* types, const XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container, bool bStatic, const char* classFullName, const CSerializationID& propertyID, const behaviac::wstring& displayName, const behaviac::wstring& desc, UiGenericType* uiWrapper)
+	void GetUiInfo(CTagTypeDescriptor::TypesMap_t* types, const behaviac::XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container, bool bStatic, int readonlyFlag, const char* classFullName, const behaviac::CSerializationID& propertyID, const behaviac::wstring& displayName, const behaviac::wstring& desc, UiGenericType* uiWrapper)
     {
         BEHAVIAC_UNUSED_VAR(propertyID);
         Provider provider(const_cast<ParentType*>(parent), const_cast<ContainerType&>(container), EPersistenceType_Description_UiInfo);
         contained_type* element = provider.GetFirstElement();
 
-		XmlNodeRef childNode = xmlNode;
+		behaviac::XmlNodeRef childNode = xmlNode;
+
         while (element)
         {
-			if (types == NULL)
-			{
-				childNode = xmlNode->newChild("Member");
-				childNode->setAttr("Name", m_elementID.GetString());
-				childNode->setAttr("ContainerElement", true);
-				if (classFullName)
-				{
-					childNode->setAttr("Class", classFullName);
-				}
-				if (bStatic)
-				{
-					childNode->setAttr("Static", "true");
-				}
-			}
+            if (types == NULL)
+            {
+                childNode = xmlNode->newChild("Member");
+                childNode->setAttr("Name", m_elementID.GetString());
+                childNode->setAttr("ContainerElement", true);
 
-			ContainedTypeHandler::GetUiInfo(types, childNode, *element, bStatic, classFullName, m_valueID, displayName, desc, NULL);
+                if (classFullName)
+                {
+                    childNode->setAttr("Class", classFullName);
+                }
+
+                if (bStatic)
+                {
+                    childNode->setAttr("Static", "true");
+                }
+
+                if (readonlyFlag & 0x1)
+                {
+                    childNode->setAttr("Readonly", "true");
+                }
+
+                if (readonlyFlag & 0x2)
+                {
+                    childNode->setAttr("Property", "true");
+                }
+            }
+
+            ContainedTypeHandler::GetUiInfo(types, childNode, *element, bStatic, readonlyFlag, classFullName, m_valueID, displayName, desc, NULL);
 
             if (uiWrapper)
             {
@@ -359,7 +366,7 @@ public:
         }
     }
 
-    void GetMethodsDescription(CTagTypeDescriptor::TypesMap_t* types, const XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container, const char* className)
+    void GetMethodsDescription(CTagTypeDescriptor::TypesMap_t* types, const behaviac::XmlNodeRef& xmlNode, const ParentType* parent, const ContainerType& container, const char* className)
     {
         BEHAVIAC_UNUSED_VAR(types);
         BEHAVIAC_UNUSED_VAR(xmlNode);
@@ -371,8 +378,8 @@ public:
     }
 
 protected:
-    CSerializationID m_elementID;
-    CSerializationID m_valueID;
+	behaviac::CSerializationID m_elementID;
+	behaviac::CSerializationID m_valueID;
 };
 
-#endif // #ifndef _ENGINESERVICES_CONTAINERTYPEHANDLER_H_
+#endif // #ifndef BEHAVIAC_ENGINESERVICES_CONTAINERTYPEHANDLER_H

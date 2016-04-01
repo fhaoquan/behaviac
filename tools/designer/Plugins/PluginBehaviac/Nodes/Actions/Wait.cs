@@ -50,25 +50,28 @@ namespace PluginBehaviac.Nodes
 			_exportName = "Wait";
 		}
 
+        public override string DocLink
+        {
+            get { return "http://www.behaviac.com/docs/zh/references/wait/"; }
+        }
+
         public override string ExportClass
         {
             get { return "Wait"; }
         }
 
-        private bool _ignoreTimeScale = false;
-        [DesignerBoolean("IgnoreTimeScale", "IgnoreTimeScaleDesc", "CategoryBasic", DesignerProperty.DisplayMode.NoDisplay, 0, DesignerProperty.DesignerFlags.NoFlags)]
-        public bool IgnoreTimeScale
-        {
-            get { return _ignoreTimeScale; }
-            set { this._ignoreTimeScale = value; }
-        }
-
-        protected VariableDef _time = new VariableDef(1000.0f);
-        [DesignerPropertyEnum("Duration", "DurationDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributes, "", "", ValueTypes.Float)]
-        public VariableDef Time
+        protected RightValueDef _time = new RightValueDef(new VariableDef(1000.0f));
+        [DesignerRightValueEnum("Duration", "DurationDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributesMethod, MethodType.Getter, "", "", ValueTypes.Float)]
+        public RightValueDef Time
         {
             get { return _time; }
             set { this._time = value; }
+        }
+
+        public override void PostCreate(List<Node.ErrorCheck> result, int version, System.Xml.XmlNode xmlNode)
+        {
+            if (_time != null && !_time.IsMethod && _time.Var != null && _time.Var.IsConst && _time.Var.Value is int)
+                _time.Var.Value = 1.0f * (int)_time.Var.Value;
         }
 
         protected override void CloneProperties(Node newnode)
@@ -77,7 +80,7 @@ namespace PluginBehaviac.Nodes
 
             Wait dec = (Wait)newnode;
             if (_time != null)
-                dec._time = (VariableDef)_time.Clone();
+                dec._time = (RightValueDef)_time.Clone();
         }
 
         private readonly static Brush __defaultBackgroundBrush = new SolidBrush(Color.FromArgb(157, 75, 39));
@@ -96,7 +99,7 @@ namespace PluginBehaviac.Nodes
 
         public override void CheckForErrors(BehaviorNode rootBehavior, List<ErrorCheck> result)
         {
-            Type valueType = (this._time != null) ? this._time.GetValueType() : null;
+            Type valueType = (this._time != null) ? this._time.ValueType : null;
 
             if (valueType == null)
             {
@@ -111,6 +114,20 @@ namespace PluginBehaviac.Nodes
             }
 
             base.CheckForErrors(rootBehavior, result);
+        }
+
+        public override bool ResetMembers(bool check, AgentType agentType, bool clear, MethodDef method = null, PropertyDef property = null)
+        {
+            bool bReset = false;
+
+            if (this._time != null)
+            {
+                bReset |= this._time.ResetMembers(check, agentType, clear, method, property);
+            }
+
+            bReset |= base.ResetMembers(check, agentType, clear, method, property);
+
+            return bReset;
         }
 	}
 }

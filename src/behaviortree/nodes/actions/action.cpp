@@ -12,7 +12,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "behaviac/base/base.h"
-#include "behaviac/world/world.h"
 #include "behaviac/property/property_t.h"
 #include "behaviac/behaviortree/nodes/actions/action.h"
 
@@ -20,368 +19,347 @@
 
 namespace behaviac
 {
-	Action::Action() : m_method(0), m_resultOption(BT_INVALID), m_resultFunctor(0), m_resultPreconditionFail(BT_FAILURE)
-	{
-	}
+    Action::Action() : m_method(0), m_resultOption(BT_INVALID), m_resultFunctor(0)
+    {
+    }
 
-	Action::~Action()
-	{
-		BEHAVIAC_DELETE(m_method);
-		BEHAVIAC_DELETE(m_resultFunctor);
-	}
+    Action::~Action()
+    {
+        BEHAVIAC_DELETE(m_method);
+        BEHAVIAC_DELETE(m_resultFunctor);
+    }
 
-	const char* strrchr(const char* start, const char* end, char c)
-	{
-		while (end > start)
-		{
-			if (*end == c)
-			{
-				return end;
-			}
+    const char* strrchr(const char* start, const char* end, char c)
+    {
+        while (end > start)
+        {
+            if (*end == c)
+            {
+                return end;
+            }
 
-			end--;
-		}
+            end--;
+        }
 
-		return 0;
-	}
+        return 0;
+    }
 
-	static const int kNameLength = 256;
-	static const char* ParseMethodNames(const char* fullName, char* agentIntanceName, char* agentClassName, char* methodName)
-	{
-		//Self.test_ns::AgentActionTest::Action2(0)
-		const char* pClassBegin = strchr(fullName, '.');
-		BEHAVIAC_ASSERT(pClassBegin);
+    static const int kNameLength = 256;
+    const char* Action::ParseMethodNames(const char* fullName, char* agentIntanceName, char* agentClassName, char* methodName)
+    {
+        //Self.test_ns::AgentActionTest::Action2(0)
+        string str;
 
-		int posClass = pClassBegin - fullName;
-		BEHAVIAC_ASSERT(posClass < kNameLength);
-		strncpy(agentIntanceName, fullName, posClass);
-		agentIntanceName[posClass] = '\0';
+        const char*  pClassBegin = strchr(fullName, '.');
+        BEHAVIAC_ASSERT(pClassBegin);
 
-		const char* pBeginAgentClass = pClassBegin + 1;
+        int posClass = pClassBegin - fullName;
+        BEHAVIAC_ASSERT(posClass < kNameLength);
+        string_ncpy(agentIntanceName, fullName, posClass);
+        agentIntanceName[posClass] = '\0';
 
-		const char* pBeginP = strchr(pBeginAgentClass, '(');
-		BEHAVIAC_ASSERT(pBeginP);
+        const char* pBeginAgentClass = pClassBegin + 1;
 
-		//test_ns::AgentActionTest::Action2(0)
-		const char* pBeginMethod = strrchr(pBeginAgentClass, pBeginP, ':');
-		BEHAVIAC_ASSERT(pBeginMethod);
-		//skip '::'
-		BEHAVIAC_ASSERT(pBeginMethod[0] == ':' && pBeginMethod[-1] == ':');
-		pBeginMethod += 1;
+        const char* pBeginP = strchr(pBeginAgentClass, '(');
+        BEHAVIAC_ASSERT(pBeginP);
 
-		int pos1 = pBeginP - pBeginMethod;
-		BEHAVIAC_ASSERT(pos1 < kNameLength);
+        //test_ns::AgentActionTest::Action2(0)
+        const char* pBeginMethod = strrchr(pBeginAgentClass, pBeginP, ':');
+        BEHAVIAC_ASSERT(pBeginMethod);
+        //skip '::'
+        BEHAVIAC_ASSERT(pBeginMethod[0] == ':' && pBeginMethod[-1] == ':');
+        pBeginMethod += 1;
 
-		strncpy(methodName, pBeginMethod, pos1);
-		methodName[pos1] = '\0';
+        int pos1 = pBeginP - pBeginMethod;
+        BEHAVIAC_ASSERT(pos1 < kNameLength);
 
-		int pos = pBeginMethod - 2 - pBeginAgentClass;
-		BEHAVIAC_ASSERT(pos < kNameLength);
+        string_ncpy(methodName, pBeginMethod, pos1);
+        methodName[pos1] = '\0';
 
-		strncpy(agentClassName, pBeginAgentClass, pos);
-		agentClassName[pos] = '\0';
+        int pos = pBeginMethod - 2 - pBeginAgentClass;
+        BEHAVIAC_ASSERT(pos < kNameLength);
 
-		return pBeginP;
-	}
+        string_ncpy(agentClassName, pBeginAgentClass, pos);
+        agentClassName[pos] = '\0';
 
-	//suppose params are seprated by ','
-	static void ParseForParams(const behaviac::string& tsrc, behaviac::vector<behaviac::string>& params)
-	{
-		int tsrcLen = (int)tsrc.size();
-		int startIndex = 0;
-		int index = 0;
-		int quoteDepth = 0;
+        return pBeginP;
+    }
 
-		for (; index < tsrcLen; ++index)
-		{
-			if (tsrc[index] == '"')
-			{
-				quoteDepth++;
+    //suppose params are seprated by ','
+    static void ParseForParams(const behaviac::string& tsrc, behaviac::vector<behaviac::string>& params)
+    {
+        int tsrcLen = (int)tsrc.size();
+        int startIndex = 0;
+        int index = 0;
+        int quoteDepth = 0;
 
-				//if (quoteDepth == 1)
-				//{
-				//	startIndex = index;
-				//}
+        for (; index < tsrcLen; ++index)
+        {
+            if (tsrc[index] == '"')
+            {
+                quoteDepth++;
 
-				if ((quoteDepth & 0x1) == 0)
-				{
-					//closing quote
-					quoteDepth -= 2;
-					BEHAVIAC_ASSERT(quoteDepth >= 0);
-				}
-			}
-			else if (quoteDepth == 0 && tsrc[index] == ',')
-			{
-				//skip ',' inside quotes, like "count, count"
-				int lengthTemp = index - startIndex;
-				behaviac::string strTemp = tsrc.substr(startIndex, lengthTemp);
-				params.push_back(strTemp);
-				startIndex = index + 1;
-			}
-		}//end for
+                //if (quoteDepth == 1)
+                //{
+                //	startIndex = index;
+                //}
 
-		// the last param
-		int lengthTemp = index - startIndex;
-		if (lengthTemp > 0)
-		{
-			behaviac::string strTemp = tsrc.substr(startIndex, lengthTemp);
-			params.push_back(strTemp);
+                if ((quoteDepth & 0x1) == 0)
+                {
+                    //closing quote
+                    quoteDepth -= 2;
+                    BEHAVIAC_ASSERT(quoteDepth >= 0);
+                }
+            }
+            else if (quoteDepth == 0 && tsrc[index] == ',')
+            {
+                //skip ',' inside quotes, like "count, count"
+                int lengthTemp = index - startIndex;
+                behaviac::string strTemp = tsrc.substr(startIndex, lengthTemp);
+                params.push_back(strTemp);
+                startIndex = index + 1;
+            }
+        }//end for
 
-			//params.push_back(strTemp);
-		}
-	}
+        // the last param
+        int lengthTemp = index - startIndex;
 
-	CMethodBase* LoadMethod(const char* value_)
-	{
-		//Self.test_ns::AgentActionTest::Action2(0)
-		char agentIntanceName[kNameLength];
-		char agentClassName[kNameLength];
-		char methodName[kNameLength];
+        if (lengthTemp > 0)
+        {
+            behaviac::string strTemp = tsrc.substr(startIndex, lengthTemp);
+            params.push_back(strTemp);
 
-		const char* pBeginP = ParseMethodNames(value_, agentIntanceName, agentClassName, methodName);
+            //params.push_back(strTemp);
+        }
+    }
 
-		//propertyName = FormatString("%s::%s", agentClassName, methodName);
-		CStringID agentClassId(agentClassName);
-		CStringID methodId(methodName);
+    CMethodBase* Action::LoadMethod(const char* value_)
+    {
+        //Self.test_ns::AgentActionTest::Action2(0)
+        char agentIntanceName[kNameLength];
+        char agentClassName[kNameLength];
+        char methodName[kNameLength];
 
-		CMethodBase* method = Agent::CreateMethod(agentClassId, methodId);
+        const char* pBeginP = ParseMethodNames(value_, agentIntanceName, agentClassName, methodName);
 
-		if (!method)
-		{
-			BEHAVIAC_LOGWARNING("No Method %s::%s registered\n", agentClassName, methodName);
-			BEHAVIAC_ASSERT(0, "No Method %s::%s registered\n", agentClassName, methodName);
-		}
-		else
-		{
-			if (Agent::IsNameRegistered(agentIntanceName))
-			{
-				method->SetInstanceNameString(agentIntanceName, PT_INSTANCE);
-			}
-			else
-			{
-				//BEHAVIAC_ASSERT(agentIntanceName == "Self");
-			}
+        //propertyName = FormatString("%s::%s", agentClassName, methodName);
+        CStringID agentClassId(agentClassName);
+        CStringID methodId(methodName);
 
-			BEHAVIAC_ASSERT(method, "No Method %s::%s registered", agentClassName, methodName);
-			const char* params = pBeginP;
+        CMethodBase* method = Agent::CreateMethod(agentClassId, methodId);
 
-			BEHAVIAC_ASSERT(params[0] == '(');
+        if (!method)
+        {
+            BEHAVIAC_LOGWARNING("No Method %s::%s registered\n", agentClassName, methodName);
+            BEHAVIAC_ASSERT(0, "No Method %s::%s registered\n", agentClassName, methodName);
+        }
+        else
+        {
+            //if (Agent::IsInstanceNameRegistered(agentIntanceName))
+            {
+                method->SetInstanceNameString(agentIntanceName, PT_INSTANCE);
+            }
 
-			behaviac::vector<behaviac::string> tokens;
+            BEHAVIAC_ASSERT(method, "No Method %s::%s registered", agentClassName, methodName);
+            const char* params = pBeginP;
 
-			{
-				int len = strlen(params);
+            BEHAVIAC_ASSERT(params[0] == '(');
 
-				BEHAVIAC_ASSERT (params[len - 1] == ')');
+            behaviac::vector<behaviac::string> tokens;
 
-				behaviac::string text = behaviac::string(params + 1, len - 2);
-				//behaviac::StringUtils::SplitIntoArray(text, ",", tokens);
-				ParseForParams(text, tokens);
-			}
+            {
+                int len = strlen(params);
 
-			if (tokens.size() > 0)
-			{
-				XmlNodeRef xmlNode = CreateXmlNode("Method");
+                BEHAVIAC_ASSERT(params[len - 1] == ')');
 
-				for (uint32_t i = 0; i < tokens.size(); ++i)
-				{
-					const behaviac::string& token = tokens[i];
-					behaviac::string attriName = FormatString("param%d", i + 1);
-					xmlNode->setAttr(attriName.c_str(), token);
-				}
+                behaviac::string text = behaviac::string(params + 1, len - 2);
+                //behaviac::StringUtils::SplitIntoArray(text, ",", tokens);
+                ParseForParams(text, tokens);
+            }
 
-				CTextNode node(xmlNode);
-				method->LoadFromXML(0, node);
-			}
-		}
+            if (tokens.size() > 0)
+            {
+                XmlNodeRef xmlNode = CreateXmlNode("Method");
 
-		return method;
-	}
+                for (uint32_t i = 0; i < tokens.size(); ++i)
+                {
+                    const behaviac::string& token = tokens[i];
+                    behaviac::string attriName = FormatString("param%d", i + 1);
+                    xmlNode->setAttr(attriName.c_str(), token);
+                }
 
-	void Action::load(int version, const char* agentType, const properties_t& properties)
-	{
-		super::load(version, agentType, properties);
+                CTextNode node(xmlNode);
+                method->LoadFromXML(0, node);
+            }
+        }
 
-		for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
-		{
-			const property_t& p = (*it);
+        return method;
+    }
 
-			if (strcmp(p.name, "Method") == 0)
-			{
-				if (p.value[0] != '\0')
-				{
-					this->m_method = LoadMethod(p.value);
-				}
-			}
-			else if(strcmp(p.name, "ResultOption") == 0)
-			{
-				if(strcmp(p.value, "BT_INVALID") == 0)
-				{
-					m_resultOption = BT_INVALID;
-				}
-				else if(strcmp(p.value, "BT_FAILURE") == 0)
-				{
-					m_resultOption = BT_FAILURE;
-				}
-				else if(strcmp(p.value, "BT_RUNNING") == 0)
-				{
-					m_resultOption = BT_RUNNING;
-				}
-				else
-				{
-					m_resultOption = BT_SUCCESS;
-				}
-			}
-			else if(strcmp(p.name, "ResultFunctor") == 0)
-			{
-				if (p.value[0] != '\0')
-				{
-					this->m_resultFunctor = LoadMethod(p.value);
-				}
-			}
-			else if (strcmp(p.name, "PreconditionFailResult") == 0)
-			{
-				if (strcmp(p.value, "BT_FAILURE") == 0)
-				{
-					m_resultPreconditionFail = BT_FAILURE;
-				}
-				else if (strcmp(p.value, "BT_SUCCESS") == 0)
-				{
-					m_resultPreconditionFail = BT_SUCCESS;
-				}
-				else
-				{
-					BEHAVIAC_ASSERT(0, "unrecognized value");
-				}
-			}
-			else
-			{
-				//BEHAVIAC_ASSERT(0, "unrecognised property %s", p.name);
-			}
-		}
-	}
+    void Action::load(int version, const char* agentType, const properties_t& properties)
+    {
+        super::load(version, agentType, properties);
 
-	bool Action::IsValid(Agent* pAgent, BehaviorTask* pTask) const
-	{
-		if (!Action::DynamicCast(pTask->GetNode()))
-		{
-			return false;
-		}
+        for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
+        {
+            const property_t& p = (*it);
 
-		return super::IsValid(pAgent, pTask);
-	}
+            if (strcmp(p.name, "Method") == 0)
+            {
+                if (p.value[0] != '\0')
+                {
+                    this->m_method = Action::LoadMethod(p.value);
+                }
+            }
+            else if (strcmp(p.name, "ResultOption") == 0)
+            {
+                if (strcmp(p.value, "BT_INVALID") == 0)
+                {
+                    m_resultOption = BT_INVALID;
 
-	BehaviorTask* Action::createTask() const
-	{
-		ActionTask* pTask = BEHAVIAC_NEW ActionTask();
-		
-		return pTask;
-	}
+                }
+                else if (strcmp(p.value, "BT_FAILURE") == 0)
+                {
+                    m_resultOption = BT_FAILURE;
 
-	ActionTask::ActionTask() : LeafTask()
-	{
-	}
+                }
+                else if (strcmp(p.value, "BT_RUNNING") == 0)
+                {
+                    m_resultOption = BT_RUNNING;
 
-	ActionTask::~ActionTask()
-	{
-	}
+                }
+                else
+                {
+                    m_resultOption = BT_SUCCESS;
+                }
+            }
+            else if (strcmp(p.name, "ResultFunctor") == 0)
+            {
+                if (p.value[0] != '\0')
+                {
+                    this->m_resultFunctor = LoadMethod(p.value);
+                }
+            }
+            else
+            {
+                //BEHAVIAC_ASSERT(0, "unrecognised property %s", p.name);
+            }
+        }
+    }
 
-	void ActionTask::copyto(BehaviorTask* target) const
-	{
-		super::copyto(target);
-	}
+    bool Action::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+    {
+        if (!Action::DynamicCast(pTask->GetNode()))
+        {
+            return false;
+        }
 
-	void ActionTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
-	}
+        return super::IsValid(pAgent, pTask);
+    }
 
-	void ActionTask::load(ISerializableNode* node)
-	{
-		super::load(node);
-	}
+    BehaviorTask* Action::createTask() const
+    {
+        ActionTask* pTask = BEHAVIAC_NEW ActionTask();
 
-	bool ActionTask::onenter(Agent* pAgent)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		return true;
-	}
+        return pTask;
+    }
 
-	void ActionTask::onexit(Agent* pAgent, EBTStatus s)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(s);
-	}
+	uint32_t SetNodeId(uint32_t nodeId);
+	void ClearNodeId(uint32_t slot);
 
-	int SetNodeId(int nodeId);
-	void ClearNodeId(int slot);
+    //Execute(Agent* pAgent)method hava be change to Execute(Agent* pAgent, EBTStatus childStatus)
+    EBTStatus Action::Execute(const Agent* pAgent, EBTStatus childStatus)
+    {
+        EBTStatus result = BT_SUCCESS;
 
-	EBTStatus ActionTask::update(Agent* pAgent, EBTStatus childStatus)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(childStatus);
+        if (this->m_method)
+        {
+            //#if BEHAVIAC_ENABLE_PROFILING
+            //			BEHAVIAC_PROFILE("Node");
+            //#endif
+			uint32_t nodeId = this->GetId();
 
-		BEHAVIAC_ASSERT(Action::DynamicCast(this->GetNode()));
-		Action* pActionNode = (Action*)(this->GetNode());
+			uint32_t slot = SetNodeId(nodeId);
+            BEHAVIAC_ASSERT(slot != (uint32_t)-1, "no empty slot found!");
 
-		if (!this->CheckPredicates(pAgent))
-		{
-			return pActionNode->m_resultPreconditionFail;
-		}
+            const Agent* pParent = this->m_method->GetParentAgent(pAgent);
+            this->m_method->run(pParent, pAgent);
 
-		EBTStatus result = BT_SUCCESS;
+            if (this->m_resultOption != BT_INVALID)
+            {
+                result = this->m_resultOption;
 
-		if (pActionNode->m_method)
-		{
-//#if BEHAVIAC_ENABLE_PROFILING
-//			BEHAVIAC_PROFILE("Node");
-//#endif
-			ParentType pt = pActionNode->m_method->GetParentType();
-			Agent* pParent = pAgent;
-			if (pt == PT_INSTANCE)
-			{
-				pParent = Agent::GetInstance(pActionNode->m_method->GetInstanceNameString(), pParent->GetContextId());
-				BEHAVIAC_ASSERT(pParent);
-			}
+            }
+            else if (this->m_resultFunctor)
+            {
+                const Agent* pParentCheckResult = this->m_resultFunctor->GetParentAgent(pAgent);
 
-			int nodeId = this->GetId();
-			int slot = SetNodeId(nodeId);
-			BEHAVIAC_ASSERT(slot != -1, "no empty slot found!");
+                result = (EBTStatus)this->m_method->CheckReturn(pParent, pParentCheckResult, this->m_resultFunctor);
 
-			pActionNode->m_method->run(pParent, pAgent);
+            }
+            else
+            {
+                this->m_method->CheckReturn(pParent, result);
+            }
 
-			if (pActionNode->m_resultOption != BT_INVALID)
-			{
-				result = pActionNode->m_resultOption;
-			}
-			else if (pActionNode->m_resultFunctor)
-			{
-				ParentType pt = pActionNode->m_resultFunctor->GetParentType();
-				Agent* pParentCheckResult = pAgent;
-				if (pt == PT_INSTANCE)
-				{
-					pParentCheckResult = Agent::GetInstance(pActionNode->m_resultFunctor->GetInstanceNameString(), pParentCheckResult->GetContextId());
-					BEHAVIAC_ASSERT(pParentCheckResult);
-				}
+            ClearNodeId(slot);
+        }
+        else
+        {
+            //#if BEHAVIAC_ENABLE_PROFILING
+            //			BEHAVIAC_PROFILE("ActionGenerated");
+            //#endif
+            result = this->update_impl((Agent*)pAgent, childStatus);
+        }
 
-				result = (EBTStatus)pActionNode->m_method->CheckReturn(pParent, pParentCheckResult, pActionNode->m_resultFunctor);
-			}
-			else
-			{
-				pActionNode->m_method->CheckReturn(pParent, result);
-			}
+        return result;
+    }
 
-			ClearNodeId(slot);
-		}
-		else
-		{
-//#if BEHAVIAC_ENABLE_PROFILING
-//			BEHAVIAC_PROFILE("ActionGenerated");
-//#endif
-			result = pActionNode->update_impl(pAgent, childStatus);
-		}
+    ActionTask::ActionTask() : LeafTask()
+    {
+    }
 
-		return result;
-	}
+    ActionTask::~ActionTask()
+    {
+    }
 
+    void ActionTask::copyto(BehaviorTask* target) const
+    {
+        super::copyto(target);
+    }
+
+    void ActionTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
+    }
+
+    void ActionTask::load(ISerializableNode* node)
+    {
+        super::load(node);
+    }
+
+    bool ActionTask::onenter(Agent* pAgent)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        return true;
+    }
+
+    void ActionTask::onexit(Agent* pAgent, EBTStatus s)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        BEHAVIAC_UNUSED_VAR(s);
+    }
+
+    EBTStatus ActionTask::update(Agent* pAgent, EBTStatus childStatus)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        BEHAVIAC_UNUSED_VAR(childStatus);
+
+        BEHAVIAC_ASSERT(Action::DynamicCast(this->GetNode()));
+        Action* pActionNode = (Action*)(this->GetNode());
+
+        EBTStatus result = pActionNode->Execute(pAgent, childStatus);
+
+        return result;
+    }
 }

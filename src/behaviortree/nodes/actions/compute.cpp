@@ -12,302 +12,231 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "behaviac/base/base.h"
-#include "behaviac/world/world.h"
 #include "behaviac/property/property_t.h"
 #include "behaviac/behaviortree/nodes/actions/compute.h"
 
 #include "behaviac/base/core/profiler/profiler.h"
+#include "behaviac/behaviortree/nodes/actions/action.h"
+#include "behaviac/behaviortree/nodes/conditions/condition.h"
 
 namespace behaviac
 {
-	Compute::Compute() : m_opl(0), m_opr1(0), m_opr1_m(0), m_opr2(0), m_opr2_m(0), m_operator(E_INVALID)
-	{
-	}
+    Compute::VariableComputers* Compute::ms_computers;
 
-	Compute::~Compute()
-	{
-		BEHAVIAC_DELETE(m_opl);
-		BEHAVIAC_DELETE(m_opr1);
-		BEHAVIAC_DELETE(m_opr1_m);
+    Compute::VariableComputers& Compute::Computers()
+    {
+        if (!ms_computers)
+        {
+            ms_computers = BEHAVIAC_NEW Compute::VariableComputers;
+        }
 
-		BEHAVIAC_DELETE(m_opr2);
-		BEHAVIAC_DELETE(m_opr2_m);
-	}
+        return *ms_computers;
+    }
 
-	CMethodBase* LoadMethod(const char* value);
-	Property* LoadLeft(const char* value, behaviac::string& propertyName, const char* constValue);
-	Property* LoadRight(const char* value, const behaviac::string& propertyName, behaviac::string& typeName);
+    void Compute::Cleanup()
+    {
+        if (ms_computers)
+        {
+            ms_computers->clear();
+            BEHAVIAC_DELETE(ms_computers);
+            ms_computers = 0;
+        }
+    }
 
-	void Compute::load(int version, const char* agentType, const properties_t& properties)
-	{
-		super::load(version, agentType, properties);
+    void Compute::RegisterBasicTypes()
+    {
+#undef BEHAVIAC_DECLARE_PRIMITE_TYPE
+#define BEHAVIAC_DECLARE_PRIMITE_TYPE(type, typeName)				\
+    Register<type>(#typeName);
 
-		behaviac::string propertyName;
+        M_PRIMITIVE_NUMBER_TYPES();
+    }
 
-		for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
-		{
-			const property_t& p = (*it);
+    void Compute::UnRegisterBasicTypes()
+    {
+#undef BEHAVIAC_DECLARE_PRIMITE_TYPE
+#define BEHAVIAC_DECLARE_PRIMITE_TYPE(type, typeName)				\
+    UnRegister<type>(#typeName);
 
-			if (strcmp(p.name, "Opl") == 0)
-			{
-				this->m_opl = LoadLeft(p.value, propertyName, 0);
-			}
-			else if (strcmp(p.name, "Operator") == 0)
-			{
-				if (strcmp(p.value, "Add") == 0)
-				{
-					this->m_operator = E_ADD;
-				}
-				else if (strcmp(p.value, "Sub") == 0)
-				{
-					this->m_operator = E_SUB;
-				}
-				else if (strcmp(p.value, "Mul") == 0)
-				{
-					this->m_operator = E_MUL;
-				}
-				else if (strcmp(p.value, "Div") == 0)
-				{
-					this->m_operator = E_DIV;
-				}
-				else
-				{
-					BEHAVIAC_ASSERT(0);
-				}
-			}
-			else if (strcmp(p.name, "Opr1") == 0)
-			{
-				const char* pParenthesis = strchr(p.value, '(');
-				if (pParenthesis == 0)
-				{
-					behaviac::string typeName;
-					this->m_opr1 = LoadRight(p.value, propertyName, typeName);
-				}
-				else
-				{
-					//method
-					this->m_opr1_m = LoadMethod(p.value);
-				}
-			}
-			else if (strcmp(p.name, "Opr2") == 0)
-			{
-				const char* pParenthesis = strchr(p.value, '(');
-				if (pParenthesis == 0)
-				{
-					behaviac::string typeName;
-					this->m_opr2 = LoadRight(p.value, propertyName, typeName);
-				}
-				else
-				{
-					//method
-					this->m_opr2_m = LoadMethod(p.value);
-				}
-			}
-			else
-			{
-				//BEHAVIAC_ASSERT(0, "unrecognised property %s", p.name);
-			}
-		}
+        M_PRIMITIVE_NUMBER_TYPES();
+    }
 
-		BEHAVIAC_ASSERT(this->m_operator != E_INVALID);
-	}
+    Compute::Compute() : m_opl(0), m_opr1(0), m_opr1_m(0), m_opr2(0), m_opr2_m(0), m_operator(ECO_INVALID)
+    {
+    }
 
-	bool Compute::IsValid(Agent* pAgent, BehaviorTask* pTask) const
-	{
-		if (!Compute::DynamicCast(pTask->GetNode()))
-		{
-			return false;
-		}
+    Compute::~Compute()
+    {
+        BEHAVIAC_DELETE(m_opr1_m);
+        BEHAVIAC_DELETE(m_opr2_m);
+    }
 
-		return super::IsValid(pAgent, pTask);
-	}
+    ////CMethodBase* LoadMethod(const char* value);
+    //Property* LoadLeft(const char* value, behaviac::string& propertyName, const char* constValue);
+    //Property* LoadRight(const char* value, const behaviac::string& propertyName, behaviac::string& typeName);
 
-	BehaviorTask* Compute::createTask() const
-	{
-		ComputeTask* pTask = BEHAVIAC_NEW ComputeTask();
+    void Compute::load(int version, const char* agentType, const properties_t& properties)
+    {
+        super::load(version, agentType, properties);
 
-		return pTask;
-	}
+        behaviac::string typeName;
+        behaviac::string propertyName;
 
-	ComputeTask::ComputeTask() : LeafTask()
-	{
-	}
+        for (propertie_const_iterator_t it = properties.begin(); it != properties.end(); ++it)
+        {
+            const property_t& p = (*it);
 
-	ComputeTask::~ComputeTask()
-	{
-	}
+            if (strcmp(p.name, "Opl") == 0)
+            {
+                this->m_opl = Condition::LoadLeft(p.value);
+            }
+            else if (strcmp(p.name, "Operator") == 0)
+            {
+                if (strcmp(p.value, "Add") == 0)
+                {
+                    this->m_operator = ECO_ADD;
+                }
+                else if (strcmp(p.value, "Sub") == 0)
+                {
+                    this->m_operator = ECO_SUB;
+                }
+                else if (strcmp(p.value, "Mul") == 0)
+                {
+                    this->m_operator = ECO_MUL;
+                }
+                else if (strcmp(p.value, "Div") == 0)
+                {
+                    this->m_operator = ECO_DIV;
+                }
+                else
+                {
+                    BEHAVIAC_ASSERT(0);
+                }
+            }
+            else if (strcmp(p.name, "Opr1") == 0)
+            {
+                const char* pParenthesis = strchr(p.value, '(');
 
-	void ComputeTask::copyto(BehaviorTask* target) const
-	{
-		super::copyto(target);
-	}
+                if (pParenthesis == 0)
+                {
+                    this->m_opr1 = Condition::LoadRight(p.value, typeName);
+                }
+                else
+                {
+                    //method
+                    this->m_opr1_m = Action::LoadMethod(p.value);
+                }
+            }
+            else if (strcmp(p.name, "Opr2") == 0)
+            {
+                const char* pParenthesis = strchr(p.value, '(');
 
-	void ComputeTask::save(ISerializableNode* node) const
-	{
-		super::save(node);
-	}
+                if (pParenthesis == 0)
+                {
+                    this->m_opr2 = Condition::LoadRight(p.value, typeName);
+                }
+                else
+                {
+                    //method
+                    this->m_opr2_m = Action::LoadMethod(p.value);
+                }
+            }
+            else
+            {
+                //BEHAVIAC_ASSERT(0, "unrecognised property %s", p.name);
+            }
+        }
 
-	void ComputeTask::load(ISerializableNode* node)
-	{
-		super::load(node);
-	}
+        BEHAVIAC_ASSERT(this->m_operator != ECO_INVALID);
+        this->m_typeName = typeName;
+    }
 
-	bool ComputeTask::isContinueTicking() const
-	{
-		return false;
-	}
+    bool Compute::EvaluteCompute(Agent* pAgent, const behaviac::string& typeName, Property* opl, Property* opr1, CMethodBase* opr1_m, EComputeOperator computeOperator, Property* opr2, CMethodBase* opr2_m)
+    {
+        bool bValid = false;
 
-	bool ComputeTask::onenter(Agent* pAgent)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		return true;
-	}
+        if (typeName != "")
+        {
+            VariableComputer* pComputer = Computers()[typeName];
 
-	void ComputeTask::onexit(Agent* pAgent, EBTStatus s)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(s);
-	}
+            if (pComputer)
+            {
+                bValid = pComputer->Execute(pAgent, opl, opr1, opr1_m, computeOperator, opr2, opr2_m);
+            }
+        }
 
-	EBTStatus ComputeTask::update(Agent* pAgent, EBTStatus childStatus)
-	{
-		BEHAVIAC_UNUSED_VAR(pAgent);
-		BEHAVIAC_UNUSED_VAR(childStatus);
+        return bValid;
+    }
 
-		EBTStatus result = BT_SUCCESS;
+    bool Compute::IsValid(Agent* pAgent, BehaviorTask* pTask) const
+    {
+        if (!Compute::DynamicCast(pTask->GetNode()))
+        {
+            return false;
+        }
 
-		BEHAVIAC_ASSERT(Compute::DynamicCast(this->GetNode()));
-		Compute* pComputeNode = (Compute*)(this->GetNode());
+        return super::IsValid(pAgent, pTask);
+    }
 
-		bool bValid = false;
+    BehaviorTask* Compute::createTask() const
+    {
+        ComputeTask* pTask = BEHAVIAC_NEW ComputeTask();
 
-		{
-//#if BEHAVIAC_ENABLE_PROFILING
-//			BEHAVIAC_PROFILE("Node");
-//#endif
-			if (pComputeNode->m_opl)
-			{
-				if (pComputeNode->m_opr1_m)
-				{
-					bValid = true;
-					ParentType pt = pComputeNode->m_opr1_m->GetParentType();
-					Agent* pParent = pAgent;
-					if (pt == PT_INSTANCE)
-					{
-						pParent = Agent::GetInstance(pComputeNode->m_opr1_m->GetInstanceNameString(), pParent->GetContextId());
-						BEHAVIAC_ASSERT(pParent);
-					}
+        return pTask;
+    }
 
-					pComputeNode->m_opr1_m->run(pParent, pAgent);
+    ComputeTask::ComputeTask() : LeafTask()
+    {
+    }
 
-					ParentType pt_opl = pComputeNode->m_opl->GetParentType();
-					Agent* pParentOpl = pAgent;
-					if (pt_opl == PT_INSTANCE)
-					{
-						pParentOpl = Agent::GetInstance(pComputeNode->m_opl->GetInstanceNameString(), pParentOpl->GetContextId());
-						BEHAVIAC_ASSERT(pParentOpl);
-					}
+    ComputeTask::~ComputeTask()
+    {
+    }
 
-					pComputeNode->m_opr1_m->GetReturnValue(pParent, pComputeNode->m_opl, pParentOpl);
-				}
-				else if (pComputeNode->m_opr1)
-				{
-					bValid = true;
+    void ComputeTask::copyto(BehaviorTask* target) const
+    {
+        super::copyto(target);
+    }
 
-					Agent* pParentL = pAgent;
-					Agent* pParentR = pAgent;
+    void ComputeTask::save(ISerializableNode* node) const
+    {
+        super::save(node);
+    }
 
-					{
-						ParentType pt = pComputeNode->m_opl->GetParentType();
-						if (pt == PT_INSTANCE)
-						{
-							pParentL = Agent::GetInstance(pComputeNode->m_opl->GetInstanceNameString(), pParentL->GetContextId());
-							BEHAVIAC_ASSERT(pParentL);
-						}
-					}
-					{
-						ParentType pt = pComputeNode->m_opr1->GetParentType();
-						if (pt == PT_INSTANCE)
-						{
-							pParentR = Agent::GetInstance(pComputeNode->m_opr1->GetInstanceNameString(), pParentR->GetContextId());
+    void ComputeTask::load(ISerializableNode* node)
+    {
+        super::load(node);
+    }
 
-							//it is a const
-							if (!pParentR)
-							{
-								pParentR = pParentL;
-							}
-						}
-					}
 
-					pComputeNode->m_opl->SetFrom(pParentR, pComputeNode->m_opr1, pParentL);
-				}
+    bool ComputeTask::onenter(Agent* pAgent)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        return true;
+    }
 
-				if (pComputeNode->m_opr2_m)
-				{
-					bValid = true;
-					ParentType pt = pComputeNode->m_opr2_m->GetParentType();
-					Agent* pParent = pAgent;
-					if (pt == PT_INSTANCE)
-					{
-						pParent = Agent::GetInstance(pComputeNode->m_opr2_m->GetInstanceNameString(), pParent->GetContextId());
-						BEHAVIAC_ASSERT(pParent);
-					}
+    void ComputeTask::onexit(Agent* pAgent, EBTStatus s)
+    {
+        BEHAVIAC_UNUSED_VAR(pAgent);
+        BEHAVIAC_UNUSED_VAR(s);
+    }
+    EBTStatus ComputeTask::update(Agent* pAgent, EBTStatus childStatus)
+    {
+        BEHAVIAC_ASSERT(childStatus == BT_RUNNING);
 
-					pComputeNode->m_opr2_m->run(pParent, pAgent);
+        EBTStatus result = BT_SUCCESS;
 
-					ParentType pt_opl = pComputeNode->m_opl->GetParentType();
-					Agent* pParentOpl = pAgent;
-					if (pt_opl == PT_INSTANCE)
-					{
-						pParentOpl = Agent::GetInstance(pComputeNode->m_opl->GetInstanceNameString(), pParentOpl->GetContextId());
-						BEHAVIAC_ASSERT(pParentOpl);
-					}
+        BEHAVIAC_ASSERT(Compute::DynamicCast(this->GetNode()));
+        Compute* pComputeNode = (Compute*)(this->GetNode());
 
-					pComputeNode->m_opr2_m->ComputeReturnValue(pParent, pComputeNode->m_opl, pParentOpl, pComputeNode->m_operator);
-				}
-				else if (pComputeNode->m_opr2)
-				{
-					bValid = true;
+        bool bValid = Compute::EvaluteCompute(pAgent, pComputeNode->m_typeName, pComputeNode->m_opl, pComputeNode->m_opr1, pComputeNode->m_opr1_m,
+                                              pComputeNode->m_operator, pComputeNode->m_opr2, pComputeNode->m_opr2_m);
 
-					Agent* pParentL = pAgent;
-					Agent* pParentR = pAgent;
+        if (!bValid)
+        {
+            result = pComputeNode->update_impl(pAgent, childStatus);
+        }
 
-					{
-						ParentType pt = pComputeNode->m_opl->GetParentType();
-						if (pt == PT_INSTANCE)
-						{
-							pParentL = Agent::GetInstance(pComputeNode->m_opl->GetInstanceNameString(), pParentL->GetContextId());
-							BEHAVIAC_ASSERT(pParentL);
-						}
-					}
-					{
-						ParentType pt = pComputeNode->m_opr2->GetParentType();
-						if (pt == PT_INSTANCE)
-						{
-							pParentR = Agent::GetInstance(pComputeNode->m_opr2->GetInstanceNameString(), pParentR->GetContextId());
-
-							//it is a const
-							if (!pParentR)
-							{
-								pParentR = pParentL;
-							}
-						}
-					}
-
-					pComputeNode->m_opl->ComputeFrom(pParentR, pComputeNode->m_opr2, pParentL, pComputeNode->m_operator);
-				}
-			}
-		}
-
-		if (!bValid)
-		{
-//#if BEHAVIAC_ENABLE_PROFILING
-//			BEHAVIAC_PROFILE("ComputeGenerated");
-//#endif
-			result = pComputeNode->update_impl(pAgent, childStatus);
-		}
-
-		return result;
-	}
-
+        return result;
+    }
 }
